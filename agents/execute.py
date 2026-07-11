@@ -8,7 +8,7 @@ from prompts import EXECUTE_SCHEDULE, EXECUTE_SCRIPT, EXECUTE_NOTICE
 
 def execute_agent(state: ActivityState) -> ActivityState:
     plan = state["activity_plan"]
-    people = state["total_budget"] // 15
+    people = state["input_participants"]
     venue = get_venue_info(people)
     print(f"[执行] 正在生成活动日程...", flush=True)
     sch = llm.invoke(EXECUTE_SCHEDULE.format(plan=plan)).content

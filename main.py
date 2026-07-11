@@ -8,7 +8,7 @@ from langgraph.graph import StateGraph, END
 from models import ActivityState
 from config import llm
 from db import save_case
-from prompts import ROUTER
+from prompts import ROUTER, AMBIGUITY_CHECK
 from agents import (
     command_center,
     plan_agent,
@@ -111,7 +111,7 @@ def parse_intent(user_input: str) -> str:
 
 
 # ── 运行入口 ──────────────────────────────────────────────────
-def run_graph(user_input: str, intent: str = None):
+def run_graph(user_input: str, input_budget: int = 0, input_participants: int = 0, intent: str = None):
     if intent is None:
         print("[路由] 正在解析用户意图...", flush=True)
         intent = parse_intent(user_input)
@@ -119,6 +119,8 @@ def run_graph(user_input: str, intent: str = None):
 
     init_state = ActivityState(
         user_intent=user_input,
+        input_budget=input_budget,
+        input_participants=input_participants,
         short_memory={},
         history_cases=[],
         activity_plan=None,
@@ -155,18 +157,16 @@ def print_result(state: dict, intent: str):
         value = state.get(key)
         if value is None:
             continue
-        if key == "total_budget":
+
+        if key == "activity_plan":
+            # 策划案自动导出为文档，不在终端输出
+            filepath = export_to_file(state, intent)
+            print(f"✅ 策划案已生成：{filepath}")
+        elif key == "total_budget":
             print(f"\n===== {label} ===== {value}")
         else:
             print(f"\n===== {label} =====")
             print(value)
-
-        # 策划案生成后立即询问是否导出
-        if key == "activity_plan" and value:
-            answer = input("\n是否将策划案导出为文档？(y/n，默认 y)：").strip().lower()
-            if answer != "n":
-                filepath = export_to_file(state, intent)
-                print(f"✅ 策划案已导出：{filepath}")
 
     print("\n===== 运行日志 =====")
     for log in state.get("log", []):
@@ -174,8 +174,41 @@ def print_result(state: dict, intent: str):
 
 
 # ── 交互入口 ──────────────────────────────────────────────────
-def collect_input() -> str:
-    """分步收集用户输入并组装成完整需求描述。"""
+def validate_activity_type(activity_type: str) -> str:
+    """检查活动类型是否模糊，模糊则要求用户具体化。"""
+    prompt = AMBIGUITY_CHECK.format(activity_type=activity_type)
+    resp = llm.invoke(prompt)
+    result = resp.content.strip()
+
+    if result.startswith("模糊"):
+        print(f"  ⚠️ 不太明确：{result}")
+        return validate_activity_type(input("  请重新输入：").strip())
+
+    # 明确则给出细化建议（不强制）
+    hint = _refine_hint(activity_type)
+    if hint:
+        print(f"  💡 提示：{hint}")
+    return activity_type
+
+
+def _refine_hint(activity_type: str) -> str:
+    """根据活动类型给出可选的细化建议。"""
+    hints = {
+        "班会": "可补充具体主题，如：防诈骗主题班会 / 心理健康班会 / 学风建设班会",
+        "团建": "可补充具体形式，如：户外拓展团建 / 室内桌游团建 / 聚餐团建",
+        "晚会": "可补充主题，如：中秋晚会 / 元旦晚会 / 毕业晚会",
+        "比赛": "可补充比赛具体内容，如：朗诵比赛 / 歌唱比赛 / 知识竞赛",
+        "分享会": "可补充分享主题，如：考研经验分享会 / 读书分享会 / 实习分享会",
+        "讲座": "可补充讲座主题，如：职业规划讲座 / 心理健康讲座 / 学术讲座",
+    }
+    for key, msg in hints.items():
+        if key in activity_type:
+            return msg
+    return ""
+
+
+def collect_input() -> tuple:
+    """分步收集用户输入，返回 (需求描述, 预算金额, 参与人数)。"""
     print("=" * 50)
     print("  校园活动策划助手")
     print("  支持：策划 / 预算 / 执行 / 宣传 / 风险 / 反馈")
@@ -186,6 +219,7 @@ def collect_input() -> str:
     activity_type = input("  活动类型（如：读书分享会 / 迎新晚会 / 辩论赛）：").strip()
     while not activity_type:
         activity_type = input("  活动类型不能为空，请重新输入：").strip()
+    activity_type = validate_activity_type(activity_type)
 
     participants = input("  预计参与人数：").strip()
     while not participants.isdigit() or int(participants) <= 0:
@@ -195,18 +229,26 @@ def collect_input() -> str:
     while not budget.isdigit() or int(budget) < 0:
         budget = input("  请输入有效的预算金额（非负整数）：").strip()
 
-    return (
+    user_intent = (
         f"举办一场{activity_type}，参与人数{participants}人，"
         f"预算{budget}元，需要完整活动方案及相关物料"
     )
+    return user_intent, int(budget), int(participants)
 
 
 # ── 导出文档 ──────────────────────────────────────────────────
+EXPORT_DIR = Path("策划案输出")
+
+
+def ensure_export_dir():
+    EXPORT_DIR.mkdir(exist_ok=True)
+
+
 def export_to_file(state: dict, intent: str) -> str:
     """将输出结果导出为 Markdown 文档。"""
+    ensure_export_dir()
     now = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"活动策划案_{now}.md"
-    path = Path(filename)
+    path = EXPORT_DIR / f"活动策划案_{now}.md"
 
     lines = [f"# 校园活动策划方案", f"**生成时间：** {datetime.now().strftime('%Y-%m-%d %H:%M')}\n"]
     fields = OUTPUT_FIELDS.get(intent, ["activity_plan"])
@@ -218,6 +260,7 @@ def export_to_file(state: dict, intent: str) -> str:
             continue
         if key == "total_budget":
             lines.append(f"## {label}\n\n{value}\n")
+            break  # 输出到总预算即止，后续内容不导出
         else:
             lines.append(f"## {label}\n\n{value}\n")
 
@@ -227,9 +270,9 @@ def export_to_file(state: dict, intent: str) -> str:
 
 
 if __name__ == "__main__":
-    user_input = collect_input()
+    user_input, input_budget, input_participants = collect_input()
 
     print()
-    result, intent = run_graph(user_input)
+    result, intent = run_graph(user_input, input_budget=input_budget, input_participants=input_participants)
     print()
     print_result(result, intent)
