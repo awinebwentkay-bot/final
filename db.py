@@ -29,7 +29,7 @@ def save_case(state: dict):
 def search_history_case():
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
-    res = cur.execute("SELECT plan,budget,feedback FROM history_case LIMIT 3")
+    res = cur.execute("SELECT plan,budget,feedback FROM history_case")
     data = res.fetchall()
     conn.close()
     return [{"plan": i[0], "budget": i[1], "feedback": i[2]} for i in data]

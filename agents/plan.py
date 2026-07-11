@@ -12,7 +12,7 @@ def plan_agent(state: ActivityState) -> ActivityState:
     if state["budget_feedback"] == "lack":
         budget_hint = "\n注意：上次预算超支，请缩减参与人数、简化流程，将总预算控制在800元以内。"
         print(f"[策划] 第{state['budget_retry']}次重试：收到预算不足反馈，正在缩减方案规模...", flush=True)
-    prompt = PLAN_MAIN.format(cases=cases, user_intent=user_intent, budget_hint=budget_hint)
+    prompt = PLAN_MAIN.format(history_cases=cases, user_intent=user_intent, budget_hint=budget_hint)
     print(f"[策划] 正在调用大模型生成策划案...", flush=True)
     resp = llm.invoke(prompt)
     state["activity_plan"] = resp.content

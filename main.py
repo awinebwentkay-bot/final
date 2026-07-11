@@ -1,5 +1,8 @@
 """程序入口：解析用户输入 → 路由到子 Agent → 执行并输出"""
 
+from datetime import datetime
+from pathlib import Path
+
 from langgraph.graph import StateGraph, END
 
 from models import ActivityState
@@ -158,6 +161,13 @@ def print_result(state: dict, intent: str):
             print(f"\n===== {label} =====")
             print(value)
 
+        # 策划案生成后立即询问是否导出
+        if key == "activity_plan" and value:
+            answer = input("\n是否将策划案导出为文档？(y/n，默认 y)：").strip().lower()
+            if answer != "n":
+                filepath = export_to_file(state, intent)
+                print(f"✅ 策划案已导出：{filepath}")
+
     print("\n===== 运行日志 =====")
     for log in state.get("log", []):
         print(log)
@@ -189,6 +199,31 @@ def collect_input() -> str:
         f"举办一场{activity_type}，参与人数{participants}人，"
         f"预算{budget}元，需要完整活动方案及相关物料"
     )
+
+
+# ── 导出文档 ──────────────────────────────────────────────────
+def export_to_file(state: dict, intent: str) -> str:
+    """将输出结果导出为 Markdown 文档。"""
+    now = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"活动策划案_{now}.md"
+    path = Path(filename)
+
+    lines = [f"# 校园活动策划方案", f"**生成时间：** {datetime.now().strftime('%Y-%m-%d %H:%M')}\n"]
+    fields = OUTPUT_FIELDS.get(intent, ["activity_plan"])
+
+    for key in fields:
+        label = FIELD_LABELS.get(key, key)
+        value = state.get(key)
+        if value is None:
+            continue
+        if key == "total_budget":
+            lines.append(f"## {label}\n\n{value}\n")
+        else:
+            lines.append(f"## {label}\n\n{value}\n")
+
+    lines.append("---\n*由校园活动策划助手自动生成*")
+    path.write_text("\n".join(lines), encoding="utf-8")
+    return str(path)
 
 
 if __name__ == "__main__":
