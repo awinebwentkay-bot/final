@@ -164,15 +164,35 @@ def print_result(state: dict, intent: str):
 
 
 # ── 交互入口 ──────────────────────────────────────────────────
-if __name__ == "__main__":
+def collect_input() -> str:
+    """分步收集用户输入并组装成完整需求描述。"""
     print("=" * 50)
     print("  校园活动策划助手")
     print("  支持：策划 / 预算 / 执行 / 宣传 / 风险 / 反馈")
     print("=" * 50)
 
-    user_input = input("\n请输入你的活动需求：").strip()
-    if not user_input:
-        user_input = "举办一场面向全校100人的读书分享会，预算有限，需要完整活动方案、宣传物料和活动问卷"
+    print("\n请依次填写以下信息：")
+
+    activity_type = input("  活动类型（如：读书分享会 / 迎新晚会 / 辩论赛）：").strip()
+    while not activity_type:
+        activity_type = input("  活动类型不能为空，请重新输入：").strip()
+
+    participants = input("  预计参与人数：").strip()
+    while not participants.isdigit() or int(participants) <= 0:
+        participants = input("  请输入有效的正整数人数：").strip()
+
+    budget = input("  预算金额（元，没有可填 0）：").strip()
+    while not budget.isdigit() or int(budget) < 0:
+        budget = input("  请输入有效的预算金额（非负整数）：").strip()
+
+    return (
+        f"举办一场{activity_type}，参与人数{participants}人，"
+        f"预算{budget}元，需要完整活动方案及相关物料"
+    )
+
+
+if __name__ == "__main__":
+    user_input = collect_input()
 
     print()
     result, intent = run_graph(user_input)
