@@ -1,0 +1,180 @@
+"""程序入口：解析用户输入 → 路由到子 Agent → 执行并输出"""
+
+from langgraph.graph import StateGraph, END
+
+from models import ActivityState
+from config import llm
+from db import save_case
+from prompts import ROUTER
+from agents import (
+    command_center,
+    plan_agent,
+    finance_agent,
+    execute_agent,
+    promote_agent,
+    risk_check_agent,
+    feedback_agent,
+)
+
+# ── Agent 注册表 ──────────────────────────────────────────────
+AGENTS = {
+    "command_center": command_center,
+    "plan_agent": plan_agent,
+    "finance_agent": finance_agent,
+    "execute_agent": execute_agent,
+    "promote_agent": promote_agent,
+    "risk_check_agent": risk_check_agent,
+    "feedback_agent": feedback_agent,
+}
+
+# ── 路由表：意图 → 按序执行的 Agent 列表 ─────────────────────
+ROUTES = {
+    "full":     ["command_center", "plan_agent", "finance_agent",
+                 "execute_agent", "promote_agent", "risk_check_agent", "feedback_agent"],
+    "plan":     ["command_center", "plan_agent"],
+    "budget":   ["command_center", "plan_agent", "finance_agent"],
+    "execute":  ["command_center", "plan_agent", "finance_agent", "execute_agent"],
+    "promote":  ["command_center", "plan_agent", "promote_agent"],
+    "risk":     ["command_center", "plan_agent", "risk_check_agent"],
+    "feedback": ["command_center", "plan_agent", "feedback_agent"],
+}
+
+# ── 输出字段配置 ──────────────────────────────────────────────
+FIELD_LABELS = {
+    "activity_plan":  "活动策划案",
+    "total_budget":   "总预算",
+    "schedule":       "活动日程",
+    "host_script":    "主持稿",
+    "notice_text":    "通知文案",
+    "poster_copy":    "海报文案",
+    "tweet_content":  "推文内容",
+    "risk_report":    "风险评估报告",
+    "eval_comment":   "师生评价反馈",
+    "survey_template": "满意度问卷",
+}
+
+OUTPUT_FIELDS = {
+    "full":     ["activity_plan", "total_budget", "schedule", "poster_copy",
+                 "risk_report", "eval_comment", "survey_template"],
+    "plan":     ["activity_plan"],
+    "budget":   ["activity_plan", "total_budget"],
+    "execute":  ["activity_plan", "total_budget", "schedule", "host_script", "notice_text"],
+    "promote":  ["activity_plan", "poster_copy", "tweet_content"],
+    "risk":     ["activity_plan", "risk_report"],
+    "feedback": ["activity_plan", "eval_comment", "survey_template"],
+}
+
+
+# ── 动态构建子图 ──────────────────────────────────────────────
+def build_sub_graph(agent_names):
+    """根据 Agent 名称列表动态构建 LangGraph 子图。"""
+    builder = StateGraph(ActivityState)
+    for name in agent_names:
+        builder.add_node(name, AGENTS[name])
+
+    builder.set_entry_point(agent_names[0])
+
+    for i in range(len(agent_names) - 1):
+        src, dst = agent_names[i], agent_names[i + 1]
+
+        if src == "finance_agent":
+            # 预算条件边：反馈 lack 则退回 plan_agent，否则继续
+            def _budget_route(state, _dst=dst):
+                if state["budget_feedback"] == "lack":
+                    return "plan_agent"
+                return _dst
+
+            builder.add_conditional_edges("finance_agent", _budget_route, {
+                "plan_agent": "plan_agent",
+                dst: dst,
+            })
+        else:
+            builder.add_edge(src, dst)
+
+    builder.add_edge(agent_names[-1], END)
+    return builder.compile()
+
+
+# ── 意图解析 ──────────────────────────────────────────────────
+def parse_intent(user_input: str) -> str:
+    """用 LLM 判断用户意图，返回 ROUTES 的 key。"""
+    prompt = ROUTER.format(user_input=user_input)
+    resp = llm.invoke(prompt)
+    intent = resp.content.strip().lower()
+    if intent not in ROUTES:
+        print(f"[路由] 无法识别意图（{intent}），默认执行完整流程", flush=True)
+        return "full"
+    return intent
+
+
+# ── 运行入口 ──────────────────────────────────────────────────
+def run_graph(user_input: str, intent: str = None):
+    if intent is None:
+        print("[路由] 正在解析用户意图...", flush=True)
+        intent = parse_intent(user_input)
+    print(f"[路由] 意图={intent}，执行 Agent: {ROUTES[intent]}", flush=True)
+
+    init_state = ActivityState(
+        user_intent=user_input,
+        short_memory={},
+        history_cases=[],
+        activity_plan=None,
+        total_budget=None,
+        budget_feedback=None,
+        budget_retry=0,
+        schedule=None,
+        host_script=None,
+        notice_text=None,
+        poster_copy=None,
+        tweet_content=None,
+        risk_report=None,
+        eval_comment=None,
+        survey_template=None,
+        log=[],
+    )
+
+    graph = build_sub_graph(ROUTES[intent])
+    print("[进度] 开始执行 LangGraph 流程...", flush=True)
+    final_state = graph.invoke(init_state)
+    print("[进度] 流程执行完毕", flush=True)
+
+    if intent == "full":
+        save_case(final_state)
+
+    return final_state, intent
+
+
+# ── 输出结果 ──────────────────────────────────────────────────
+def print_result(state: dict, intent: str):
+    fields = OUTPUT_FIELDS.get(intent, ["activity_plan"])
+    for key in fields:
+        label = FIELD_LABELS.get(key, key)
+        value = state.get(key)
+        if value is None:
+            continue
+        if key == "total_budget":
+            print(f"\n===== {label} ===== {value}")
+        else:
+            print(f"\n===== {label} =====")
+            print(value)
+
+    print("\n===== 运行日志 =====")
+    for log in state.get("log", []):
+        print(log)
+
+
+# ── 交互入口 ──────────────────────────────────────────────────
+if __name__ == "__main__":
+    print("=" * 50)
+    print("  校园活动策划助手")
+    print("  支持：策划 / 预算 / 执行 / 宣传 / 风险 / 反馈")
+    print("=" * 50)
+
+    user_input = input("\n请输入你的活动需求：").strip()
+    if not user_input:
+        user_input = "举办一场面向全校100人的读书分享会，预算有限，需要完整活动方案、宣传物料和活动问卷"
+
+    print()
+    result, intent = run_graph(user_input)
+    print()
+    print_result(result, intent)
