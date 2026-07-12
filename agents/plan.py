@@ -2,12 +2,13 @@
 
 from models import ActivityState
 from config import llm
-from prompts import PLAN_MAIN
+from prompts import PLAN_MAIN, REGULATION_APPROVAL, REGULATION_FINANCE
 
 
 def plan_agent(state: ActivityState) -> ActivityState:
     cases = state["history_cases"]
     user_intent = state["user_intent"]
+    regulations = REGULATION_APPROVAL + REGULATION_FINANCE
     budget_hint = ""
     if state["budget_feedback"] == "lack":
         budget_limit = state["input_budget"]
@@ -16,7 +17,7 @@ def plan_agent(state: ActivityState) -> ActivityState:
             f"将总预算控制在{budget_limit}元以内。"
         )
         print(f"[策划] 第{state['budget_retry']}次重试：收到预算不足反馈，正在缩减方案规模...", flush=True)
-    prompt = PLAN_MAIN.format(history_cases=cases, user_intent=user_intent, budget_hint=budget_hint)
+    prompt = PLAN_MAIN.format(history_cases=cases, user_intent=user_intent, budget_hint=budget_hint, regulations=regulations)
     print(f"[策划] 正在调用大模型生成策划案...", flush=True)
     resp = llm.invoke(prompt)
     state["activity_plan"] = resp.content

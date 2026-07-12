@@ -2,13 +2,18 @@
 
 from models import ActivityState
 from config import llm
-from prompts import RISK_CHECK
+from prompts import RISK_CHECK, REGULATION_APPROVAL, REGULATION_FINANCE
 
 
 def risk_check_agent(state: ActivityState) -> ActivityState:
     plan = state["activity_plan"]
     print(f"[风险] 正在生成风险评估报告...", flush=True)
-    risk = llm.invoke(RISK_CHECK.format(plan=plan)).content
+    prompt = RISK_CHECK.format(
+        plan=plan,
+        regulations_approval=REGULATION_APPROVAL,
+        regulations_finance=REGULATION_FINANCE,
+    )
+    risk = llm.invoke(prompt).content
     state["risk_report"] = risk
     state["log"].append("【风险】活动合规初审完成")
     return state

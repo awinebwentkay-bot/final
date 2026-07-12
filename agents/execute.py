@@ -3,19 +3,20 @@
 from models import ActivityState
 from config import llm
 from tools import get_venue_info
-from prompts import EXECUTE_SCHEDULE, EXECUTE_SCRIPT, EXECUTE_NOTICE
+from prompts import EXECUTE_SCHEDULE, EXECUTE_SCRIPT, EXECUTE_NOTICE, REGULATION_APPROVAL
 
 
 def execute_agent(state: ActivityState) -> ActivityState:
     plan = state["activity_plan"]
     people = state["input_participants"]
     venue = get_venue_info(people)
+    regulations = REGULATION_APPROVAL
     print(f"[执行] 正在生成活动日程...", flush=True)
-    sch = llm.invoke(EXECUTE_SCHEDULE.format(plan=plan)).content
+    sch = llm.invoke(EXECUTE_SCHEDULE.format(plan=plan, regulations=regulations)).content
     print(f"[执行] 正在生成主持稿...", flush=True)
     script = llm.invoke(EXECUTE_SCRIPT.format(plan=plan)).content
     print(f"[执行] 正在生成通知文案...", flush=True)
-    notice = llm.invoke(EXECUTE_NOTICE.format(plan=plan)).content
+    notice = llm.invoke(EXECUTE_NOTICE.format(plan=plan, regulations=regulations)).content
     state["schedule"] = sch
     state["host_script"] = script
     state["notice_text"] = notice
