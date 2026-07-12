@@ -6,7 +6,7 @@ from agents.promote import promote_agent
 from agents.risk import risk_check_agent
 from agents.feedback import feedback_agent
 from agents.search import search_agent
-from agents.task_executor import task_executor
+from agents.execute import task_executor
 
 __all__ = [
     "command_center",
