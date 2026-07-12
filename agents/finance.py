@@ -2,25 +2,31 @@
 
 from models import ActivityState
 from config import llm
-from prompts import FINANCE_EXTRACT
+from prompts import FINANCE_EXTRACT, FINANCE_ESTIMATE, REGULATION_FINANCE
 
 
 def finance_agent(state: ActivityState) -> ActivityState:
     user_budget = state["input_budget"]
     plan = state["activity_plan"]
 
-    # 首次使用用户输入的人数；重试时从新策划案提取（可能已缩减）
+    # 首次使用用户输入的人数估算；重试时用 LLM 根据策划案内容精细化估算
     if state["budget_retry"] > 0:
-        prompt = FINANCE_EXTRACT.format(plan=plan)
-        people = int(llm.invoke(prompt).content)
+        prompt = FINANCE_ESTIMATE.format(plan=plan, regulations=REGULATION_FINANCE)
+        resp = llm.invoke(prompt)
+        try:
+            estimated_cost = int(resp.content.strip())
+        except ValueError:
+            # LLM 输出非数字时退回简单估算
+            prompt = FINANCE_EXTRACT.format(plan=plan)
+            people = int(llm.invoke(prompt).content)
+            estimated_cost = people * 15
     else:
         people = state["input_participants"]
+        estimated_cost = people * 15
 
-    print(f"[财务] 参与人数：{people}人，预算：{user_budget}元", flush=True)
-
-    # 按人均消耗估算（无固定成本）
-    estimated_cost = people * 15
     state["total_budget"] = estimated_cost
+
+    print(f"[财务] 预算估算：{estimated_cost}元，用户预算：{user_budget}元", flush=True)
 
     if estimated_cost > user_budget and state["budget_retry"] < 2:
         state["budget_feedback"] = "lack"
