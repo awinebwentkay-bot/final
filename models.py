@@ -19,6 +19,7 @@ class ActivityState(TypedDict):
     poster_copy: Optional[str]
     tweet_content: Optional[str]
     risk_report: Optional[str]
+    reference_cases: Optional[str]
     eval_comment: Optional[str]
     survey_template: Optional[str]
     log: List[str]

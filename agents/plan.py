@@ -21,7 +21,23 @@ def plan_agent(state: ActivityState) -> ActivityState:
             f"经费使用须遵守实事求是、勤俭节约的原则，不得开支与学生活动无关的费用。"
         )
         print(f"[策划] 第{state['budget_retry']}次重试：预算估算{previous_estimate}元，需控制在{budget_limit}元以内，正在缩减方案规模...", flush=True)
-    prompt = PLAN_MAIN.format(history_cases=cases, user_intent=user_intent, budget_hint=budget_hint, regulations=regulations)
+
+    # 如果有互联网搜索到的参考案例，追加到提示中
+    reference_hint = ""
+    ref_cases = state.get("reference_cases")
+    if ref_cases:
+        reference_hint = (
+            f"\n\n【以下是从互联网搜索到的优秀策划案例参考，可借鉴其创意和思路】\n"
+            f"{ref_cases}\n"
+            f"【参考案例结束】\n"
+        )
+
+    prompt = PLAN_MAIN.format(
+        history_cases=cases,
+        user_intent=user_intent,
+        budget_hint=budget_hint + reference_hint,
+        regulations=regulations,
+    )
     print(f"[策划] 正在调用大模型生成策划案...", flush=True)
     resp = llm.invoke(prompt)
     state["activity_plan"] = resp.content

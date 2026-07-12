@@ -10,6 +10,7 @@ from agents import (
     promote_agent,
     risk_check_agent,
     feedback_agent,
+    search_agent,
 )
 
 
@@ -21,6 +22,7 @@ def budget_route(state: ActivityState):
 
 builder = StateGraph(ActivityState)
 builder.add_node("command_center", command_center)
+builder.add_node("search_agent", search_agent)
 builder.add_node("plan_agent", plan_agent)
 builder.add_node("finance_agent", finance_agent)
 builder.add_node("execute_agent", execute_agent)
@@ -29,7 +31,8 @@ builder.add_node("risk_check_agent", risk_check_agent)
 builder.add_node("feedback_agent", feedback_agent)
 
 builder.set_entry_point("command_center")
-builder.add_edge("command_center", "plan_agent")
+builder.add_edge("command_center", "search_agent")
+builder.add_edge("search_agent", "plan_agent")
 builder.add_edge("plan_agent", "finance_agent")
 
 builder.add_conditional_edges("finance_agent", budget_route, {
