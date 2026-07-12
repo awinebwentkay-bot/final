@@ -7,6 +7,7 @@ from agents import (
     plan_agent,
     finance_agent,
     execute_agent,
+    task_executor,
     promote_agent,
     risk_check_agent,
     feedback_agent,
@@ -29,6 +30,7 @@ builder.add_node("execute_agent", execute_agent)
 builder.add_node("promote_agent", promote_agent)
 builder.add_node("risk_check_agent", risk_check_agent)
 builder.add_node("feedback_agent", feedback_agent)
+builder.add_node("task_executor", task_executor)
 
 builder.set_entry_point("command_center")
 builder.add_edge("command_center", "search_agent")
@@ -40,7 +42,8 @@ builder.add_conditional_edges("finance_agent", budget_route, {
     "execute_agent": "execute_agent",
 })
 
-builder.add_edge("execute_agent", "promote_agent")
+builder.add_edge("execute_agent", "task_executor")
+builder.add_edge("task_executor", "promote_agent")
 builder.add_edge("promote_agent", "risk_check_agent")
 builder.add_edge("risk_check_agent", "feedback_agent")
 builder.add_edge("feedback_agent", END)

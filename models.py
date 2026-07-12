@@ -22,4 +22,5 @@ class ActivityState(TypedDict):
     reference_cases: Optional[str]
     eval_comment: Optional[str]
     survey_template: Optional[str]
+    task_execution_plan: Optional[str]
     log: List[str]
