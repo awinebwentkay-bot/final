@@ -171,6 +171,12 @@ def print_result(state: dict, intent: str):
             print(f"\n===== {label} =====")
             print(value)
 
+    # 师生评价单独输出到终端（不写入文档）
+    eval_val = state.get("eval_comment")
+    if eval_val:
+        print(f"\n===== 师生评价反馈（仅供终端查看）=====")
+        print(eval_val)
+
     print("\n===== 运行日志 =====")
     for log in state.get("log", []):
         print(log)

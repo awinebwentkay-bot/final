@@ -7,8 +7,8 @@ from config import llm
 from prompts import SEARCH_REFERENCE
 
 
-def _duckduckgo_search(query: str, max_results: int = 5) -> list[dict]:
-    """使用 DuckDuckGo HTML 搜索获取结果（无需 API Key）。"""
+def _baidu_search(query: str, max_results: int = 5) -> list[dict]:
+    """使用百度 HTML 搜索获取结果（国内网络环境可用）。"""
     import requests
 
     headers = {
@@ -18,37 +18,52 @@ def _duckduckgo_search(query: str, max_results: int = 5) -> list[dict]:
             "Chrome/120.0.0.0 Safari/537.36"
         )
     }
-    url = "https://html.duckduckgo.com/html/"
-    params = {"q": query, "kl": "zh-cn"}
+    url = "https://www.baidu.com/s"
+    params = {"wd": query, "ie": "utf-8"}
 
     try:
         resp = requests.get(url, params=params, headers=headers, timeout=15)
         resp.raise_for_status()
     except Exception as e:
-        print(f"  [搜索] 网络请求失败: {e}", flush=True)
+        print(f"  [搜索] 百度搜索失败: {e}", flush=True)
         return []
 
-    # 从 HTML 中提取搜索结果标题+摘要+链接
+    # 从 HTML 中提取搜索结果
     results = []
-    # 粗略提取：查找 <a rel="nofollow" class="result__a" href="...">...</a>
-    # 及其后的 <a class="result__snippet" ...>...</a>
+    # 百度搜索结果的结构：<h3 class="t">...<a href="...">标题</a>...</h3>
+    # 摘要在 <span class="content-right_8Zs40">... 或 <div class="c-abstract">...
     texts = re.findall(
-        r'<a rel="nofollow" class="result__a" href="(.*?)">(.*?)</a>.*?'
-        r'<a class="result__snippet".*?>(.*?)</a>',
+        r'<h3[^>]*>.*?<a[^>]*href="(.*?)"[^>]*>(.*?)</a>.*?</h3>',
         resp.text,
         re.DOTALL,
     )
-    for href, title, snippet in texts[:max_results]:
-        # 清理 HTML 标签
+    for href, title in texts[:max_results]:
         title_clean = re.sub(r"<[^>]+>", "", title).strip()
-        snippet_clean = re.sub(r"<[^>]+>", "", snippet).strip()
+        if not title_clean:
+            continue
         results.append({
             "title": title_clean,
-            "url": href,
-            "snippet": snippet_clean,
+            "url": href if href.startswith("http") else f"https://www.baidu.com{href}",
+            "snippet": "",
         })
 
     return results
+
+
+def _search_web(query: str, max_results: int = 5) -> list[dict]:
+    """依次尝试多个搜索引擎，返回第一个成功的结果。"""
+    engines = [
+        ("百度", _baidu_search),
+    ]
+    for name, func in engines:
+        try:
+            results = func(query, max_results)
+            if results:
+                print(f"  [搜索] {name} 搜索成功，找到 {len(results)} 条结果", flush=True)
+                return results
+        except Exception as e:
+            print(f"  [搜索] {name} 搜索异常: {e}", flush=True)
+    return []
 
 
 def _format_search_results(results: list[dict]) -> str:
@@ -89,7 +104,7 @@ def search_agent(state: ActivityState) -> ActivityState:
         f"优秀校园活动策划案例 {keywords}",
         f"大学活动策划方案 范文 {keywords}",
     ]:
-        results = _duckduckgo_search(query, max_results=3)
+        results = _search_web(query, max_results=3)
         all_results.extend(results)
 
     # 去重
