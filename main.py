@@ -218,31 +218,51 @@ def _refine_hint(activity_type: str) -> str:
 
 def collect_input() -> tuple:
     """分步收集用户输入，返回 (需求描述, 预算金额, 参与人数)。"""
-    print("=" * 50)
-    print("  校园活动策划助手")
-    print("  支持：策划 / 预算 / 执行 / 宣传 / 风险 / 反馈")
-    print("=" * 50)
+    while True:
+        print("=" * 50)
+        print("  校园活动策划助手")
+        print("  支持：策划 / 预算 / 执行 / 宣传 / 风险 / 反馈")
+        print("=" * 50)
 
-    print("\n请依次填写以下信息：")
+        print("\n请依次填写以下信息：")
 
-    activity_type = input("  活动类型（如：读书分享会 / 迎新晚会 / 辩论赛）：").strip()
-    while not activity_type:
-        activity_type = input("  活动类型不能为空，请重新输入：").strip()
-    activity_type = validate_activity_type(activity_type)
+        activity_type = input("  活动类型（如：读书分享会 / 迎新晚会 / 辩论赛）：").strip()
+        while not activity_type:
+            activity_type = input("  活动类型不能为空，请重新输入：").strip()
+        activity_type = validate_activity_type(activity_type)
 
-    participants = input("  预计参与人数：").strip()
-    while not participants.isdigit() or int(participants) <= 0:
-        participants = input("  请输入有效的正整数人数：").strip()
+        participants = input("  预计参与人数：").strip()
+        while not participants.isdigit() or int(participants) <= 0:
+            participants = input("  请输入有效的正整数人数：").strip()
 
-    budget = input("  预算金额（元，没有可填 0）：").strip()
-    while not budget.isdigit() or int(budget) < 0:
-        budget = input("  请输入有效的预算金额（非负整数）：").strip()
+        # ── 活动规模判断 ──
+        participants_int = int(participants)
+        if participants_int > 50:
+            print(f"\n  ⚠️ 参与人数 {participants_int} 人超过 50 人，属于中大型活动。")
+            print("  📌 本助手仅适用于小型活动（50人以下）的策划。")
+            print("  " + "=" * 46)
+            print("  请选择：")
+            print("  1. 重新开始（从活动类型重新填写）")
+            print("  2. 退出程序")
+            choice = input("  请输入选项（1 或 2）：").strip()
+            while choice not in ("1", "2"):
+                choice = input("  请输入有效选项（1 或 2）：").strip()
+            if choice == "2":
+                print("  已退出程序。")
+                exit(0)
+            # choice == "1": 重新开始
+            print()
+            continue
 
-    user_intent = (
-        f"举办一场{activity_type}，参与人数{participants}人，"
-        f"预算{budget}元，需要完整活动方案及相关物料"
-    )
-    return user_intent, int(budget), int(participants)
+        budget = input("  预算金额（元，没有可填 0）：").strip()
+        while not budget.isdigit() or int(budget) < 0:
+            budget = input("  请输入有效的预算金额（非负整数）：").strip()
+
+        user_intent = (
+            f"举办一场{activity_type}，参与人数{participants}人，"
+            f"预算{budget}元，需要完整活动方案及相关物料"
+        )
+        return user_intent, int(budget), int(participants)
 
 
 # ── 导出文档 ──────────────────────────────────────────────────
