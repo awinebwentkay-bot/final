@@ -83,9 +83,9 @@ def build_sub_graph(agent_names):
         src, dst = agent_names[i], agent_names[i + 1]
 
         if src == "finance_agent":
-            # 预算条件边：反馈 lack 则退回 plan_agent，否则继续
+            # 预算条件边：lack（超预算）或 surplus（有盈余）都退回 plan_agent
             def _budget_route(state, _dst=dst):
-                if state["budget_feedback"] == "lack":
+                if state["budget_feedback"] in ("lack", "surplus"):
                     return "plan_agent"
                 return _dst
 

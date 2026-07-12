@@ -28,14 +28,28 @@ def finance_agent(state: ActivityState) -> ActivityState:
 
     print(f"[财务] 预算估算：{estimated_cost}元，用户预算：{user_budget}元", flush=True)
 
-    if estimated_cost > user_budget and state["budget_retry"] < 2:
+    if user_budget == 0:
+        # 用户未指定预算，直接通过
+        state["budget_feedback"] = "enough"
+        state["log"].append(f"【财务】估算成本{estimated_cost}元，用户未指定预算")
+    elif estimated_cost > user_budget and state["budget_retry"] < 3:
         state["budget_feedback"] = "lack"
         state["budget_retry"] += 1
         state["log"].append(
             f"【财务】估算成本{estimated_cost}元，超出预算{user_budget}元"
-            f"（第{state['budget_retry']}次），退回策划修改"
+            f"（第{state['budget_retry']}次），退回缩减"
         )
-        print(f"[财务] 估算{estimated_cost}元超出预算{user_budget}元，退回策划调整", flush=True)
+        print(f"[财务] 估算{estimated_cost}元超出预算{user_budget}元，退回策划缩减", flush=True)
+    elif estimated_cost < user_budget and state["budget_retry"] < 3:
+        # 预算有盈余，退回策划丰富方案，尽可能用完整笔预算
+        state["budget_feedback"] = "surplus"
+        state["budget_retry"] += 1
+        shortfall = user_budget - estimated_cost
+        state["log"].append(
+            f"【财务】估算成本{estimated_cost}元，低于预算{user_budget}元"
+            f"（剩余{shortfall}元，第{state['budget_retry']}次），退回丰富"
+        )
+        print(f"[财务] 估算{estimated_cost}元低于预算{user_budget}元，退回策划丰富", flush=True)
     else:
         state["budget_feedback"] = "enough"
         if estimated_cost > user_budget:
@@ -44,7 +58,9 @@ def finance_agent(state: ActivityState) -> ActivityState:
                 "已达最大重试次数，强制通过"
             )
         else:
+            diff = user_budget - estimated_cost
             state["log"].append(
-                f"【财务】估算成本{estimated_cost}元，预算{user_budget}元充足"
+                f"【财务】估算成本{estimated_cost}元，预算{user_budget}元"
+                f"（剩余{diff}元），预算通过"
             )
     return state

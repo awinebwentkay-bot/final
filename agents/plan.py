@@ -21,6 +21,18 @@ def plan_agent(state: ActivityState) -> ActivityState:
             f"经费使用须遵守实事求是、勤俭节约的原则，不得开支与学生活动无关的费用。"
         )
         print(f"[策划] 第{state['budget_retry']}次重试：预算估算{previous_estimate}元，需控制在{budget_limit}元以内，正在缩减方案规模...", flush=True)
+    elif state["budget_feedback"] == "surplus":
+        user_budget = state["input_budget"]
+        previous_estimate = state.get("total_budget", 0)
+        remaining = user_budget - previous_estimate
+        budget_hint = (
+            f"\n注意：上次预算估算为{previous_estimate}元，用户预算为{user_budget}元，"
+            f"尚有{remaining}元未使用。"
+            f"请在合理范围内丰富活动内容（如增加优质奖品、宣传物料、场地布置等），"
+            f"尽可能将{remaining}元预算用完，但须遵守实事求是、勤俭节约的原则，"
+            f"不得开支与学生活动无关的费用，不得购买零食/食品。"
+        )
+        print(f"[策划] 第{state['budget_retry']}次重试：预算估算{previous_estimate}元，低于预算{user_budget}元，正在丰富方案...", flush=True)
 
     # 如果有互联网搜索到的参考案例，追加到提示中
     reference_hint = ""
