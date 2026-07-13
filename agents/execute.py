@@ -40,7 +40,7 @@ def execute_agent(state: ActivityState) -> ActivityState:
     venue = get_venue_info(people)
     regulations = REGULATION_APPROVAL
     print(f"[执行] 正在生成活动日程...", flush=True)
-    sch = llm.invoke(EXECUTE_SCHEDULE.format(plan=plan, regulations=regulations)).content
+    sch = llm.invoke(EXECUTE_SCHEDULE.format(plan=plan, venue=venue, regulations=regulations)).content
     print(f"[执行] 正在生成主持稿...", flush=True)
     script = llm.invoke(EXECUTE_SCRIPT.format(plan=plan)).content
     print(f"[执行] 正在生成通知文案...", flush=True)

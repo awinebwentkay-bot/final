@@ -104,6 +104,9 @@ FINANCE_ESTIMATE = """
 EXECUTE_SCHEDULE = """
 根据策划案生成活动日程。
 
+场地信息（参考《场地资源.pdf》）：
+{venue}
+
 {regulations}
 
 参考以下规章要求安排时间节点：
