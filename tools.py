@@ -80,8 +80,7 @@ def _download_image(url: str) -> str:
 
     POSTER_DIR.mkdir(exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    ext = url.split(".")[-1].split("?")[0] or "png"
-    filename = f"海报_{timestamp}.{ext}"
+    filename = f"海报_{timestamp}.png"
     path = POSTER_DIR / filename
 
     resp = requests.get(url, timeout=30)

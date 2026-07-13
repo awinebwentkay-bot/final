@@ -198,11 +198,11 @@ def print_result(state: dict, intent: str):
             print(f"\n===== {label} =====")
             print(value)
 
-    # 师生评价单独输出到终端（不写入文档）
+    # 师生评价单独输出为文档，不在终端展示
     eval_val = state.get("eval_comment")
     if eval_val:
-        print(f"\n===== 师生评价反馈（仅供终端查看）=====")
-        print(eval_val)
+        eval_path = export_eval(eval_val)
+        print(f"📋 师生评价反馈已生成：{eval_path}")
 
     print("\n===== 运行日志 =====")
     for log in state.get("log", []):
@@ -349,9 +349,10 @@ def export_to_file(state: dict, intent: str) -> str:
         value = state.get(key)
         if value is None:
             continue
-        if key == "total_budget":
-            lines.append(f"## {label}\n\n{value}\n")
-            break  # 输出到总预算即止，后续内容不导出
+        if key in ("total_budget", "eval_comment"):
+            if key == "total_budget":
+                lines.append(f"## {label}\n\n{value}\n")
+            break  # 输出到总预算即止，后续内容不导出；评价已单独导出
         else:
             lines.append(f"## {label}\n\n{value}\n")
 
@@ -372,6 +373,24 @@ def export_schedule(schedule_text: str) -> str:
         f"# 活动日程\n\n"
         f"**生成时间：** {datetime.now().strftime('%Y-%m-%d %H:%M')}\n\n"
         f"{schedule_text}\n\n"
+        f"---\n*由校园活动策划助手自动生成*"
+    )
+    path.write_text(content, encoding="utf-8")
+    return str(path)
+
+
+EVAL_DIR = Path("评价输出")
+
+
+def export_eval(eval_text: str) -> str:
+    """将师生评价反馈导出为独立的 Markdown 文档。"""
+    EVAL_DIR.mkdir(exist_ok=True)
+    now = datetime.now().strftime("%Y%m%d_%H%M%S")
+    path = EVAL_DIR / f"师生评价反馈_{now}.md"
+    content = (
+        f"# 师生评价反馈\n\n"
+        f"**生成时间：** {datetime.now().strftime('%Y-%m-%d %H:%M')}\n\n"
+        f"{eval_text}\n\n"
         f"---\n*由校园活动策划助手自动生成*"
     )
     path.write_text(content, encoding="utf-8")
