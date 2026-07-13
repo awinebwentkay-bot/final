@@ -6,7 +6,7 @@ import random
 from models import ActivityState
 from config import llm
 from tools import save_poster_svg
-from poster_templates import TEMPLATES, render_poster
+from agents.poster_templates import TEMPLATES, render_poster
 from prompts import PROMOTE_TWEET, REGULATION_APPROVAL
 
 
