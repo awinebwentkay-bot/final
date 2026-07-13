@@ -24,4 +24,5 @@ class ActivityState(TypedDict):
     eval_comment: Optional[str]
     survey_template: Optional[str]
     task_execution_plan: Optional[str]
+    ppt_path: Optional[str]
     log: List[str]
