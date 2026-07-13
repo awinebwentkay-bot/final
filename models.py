@@ -6,6 +6,8 @@ from typing import TypedDict, List, Optional
 class ActivityState(TypedDict):
     user_intent: str
     input_budget: int
+    input_budget_reimbursable: int
+    input_budget_non_reimbursable: int
     input_participants: int
     short_memory: dict
     history_cases: List[dict]

@@ -42,7 +42,7 @@ def export_doc(content: str, filename: str):
 
 
 # ── 海报渲染 ──────────────────────────────────────────────
-POSTER_DIR = Path("策划案输出")
+POSTER_DIR = Path("海报输出")
 
 
 def _svgtag(tag: str, attrs: dict = None, content: str = "") -> str:

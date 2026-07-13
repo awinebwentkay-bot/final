@@ -120,7 +120,9 @@ def parse_intent(user_input: str) -> str:
 
 
 # ── 运行入口 ──────────────────────────────────────────────────
-def run_graph(user_input: str, input_budget: int = 0, input_participants: int = 0, intent: str = None):
+def run_graph(user_input: str, input_budget: int = 0,
+              input_budget_reimbursable: int = 0, input_budget_non_reimbursable: int = 0,
+              input_participants: int = 0, intent: str = None):
     if intent is None:
         print("[路由] 正在解析用户意图...", flush=True)
         intent = parse_intent(user_input)
@@ -129,6 +131,8 @@ def run_graph(user_input: str, input_budget: int = 0, input_participants: int = 
     init_state = ActivityState(
         user_intent=user_input,
         input_budget=input_budget,
+        input_budget_reimbursable=input_budget_reimbursable,
+        input_budget_non_reimbursable=input_budget_non_reimbursable,
         input_participants=input_participants,
         short_memory={},
         history_cases=[],
@@ -233,7 +237,7 @@ def _refine_hint(activity_type: str) -> str:
 
 
 def collect_input() -> tuple:
-    """分步收集用户输入，返回 (需求描述, 预算金额, 参与人数)。"""
+    """分步收集用户输入，返回 (需求描述, 总预算, 可报销经费, 不可报销经费, 参与人数)。"""
     while True:
         print("=" * 50)
         print("  校园活动策划助手")
@@ -269,9 +273,15 @@ def collect_input() -> tuple:
             print()
             continue
 
-        budget = input("  预算金额（元，没有可填 0）：").strip()
-        while not budget.isdigit() or int(budget) < 0:
-            budget = input("  请输入有效的预算金额（非负整数）：").strip()
+        budget_reimbursable = input("  可报销经费（元，没有可填 0）：").strip()
+        while not budget_reimbursable.isdigit() or int(budget_reimbursable) < 0:
+            budget_reimbursable = input("  请输入有效的可报销金额（非负整数）：").strip()
+
+        budget_non_reimbursable = input("  不可报销经费/班费（元，需参与者平摊，没有可填 0）：").strip()
+        while not budget_non_reimbursable.isdigit() or int(budget_non_reimbursable) < 0:
+            budget_non_reimbursable = input("  请输入有效的班费金额（非负整数）：").strip()
+
+        total_budget = int(budget_reimbursable) + int(budget_non_reimbursable)
 
         # ── 补充说明 ────────────────────────────────────────
         print("\n  📝 补充说明（可选，直接 Enter 跳过）：")
@@ -282,7 +292,8 @@ def collect_input() -> tuple:
         # ── 组装完整需求 ────────────────────────────────────
         user_intent = (
             f"举办一场{activity_type}，参与人数{participants}人，"
-            f"预算{budget}元，需要完整活动方案及相关物料"
+            f"可报销预算{budget_reimbursable}元，不可报销预算（班费）{budget_non_reimbursable}元，"
+            f"需要完整活动方案及相关物料"
         )
         if details:
             user_intent += f"。\n补充说明：{details}"
@@ -291,7 +302,9 @@ def collect_input() -> tuple:
         print(f"\n  📋 需求确认：")
         print(f"     活动类型：{activity_type}")
         print(f"     参与人数：{participants}人")
-        print(f"     预  算：{budget}元")
+        print(f"     可报销经费：{budget_reimbursable}元")
+        print(f"     不可报销经费（班费）：{budget_non_reimbursable}元")
+        print(f"     总预算：{total_budget}元")
         if details:
             print(f"     补充说明：{details}")
         confirm = input("  ✅ 确认无误请按 Enter，输入 n 重新填写：").strip().lower()
@@ -299,7 +312,7 @@ def collect_input() -> tuple:
             print()
             continue
 
-        return user_intent, int(budget), int(participants)
+        return user_intent, total_budget, int(budget_reimbursable), int(budget_non_reimbursable), int(participants)
 
 
 # ── 导出文档 ──────────────────────────────────────────────────
@@ -336,9 +349,15 @@ def export_to_file(state: dict, intent: str) -> str:
 
 
 if __name__ == "__main__":
-    user_input, input_budget, input_participants = collect_input()
+    user_input, total_budget, budget_reimbursable, budget_non_reimbursable, input_participants = collect_input()
 
     print()
-    result, intent = run_graph(user_input, input_budget=input_budget, input_participants=input_participants)
+    result, intent = run_graph(
+        user_input,
+        input_budget=total_budget,
+        input_budget_reimbursable=budget_reimbursable,
+        input_budget_non_reimbursable=budget_non_reimbursable,
+        input_participants=input_participants,
+    )
     print()
     print_result(result, intent)
