@@ -18,6 +18,7 @@ from agents import (
     risk_check_agent,
     feedback_agent,
     search_agent,
+    confirm_agent,
     ppt_agent,
 )
 
@@ -31,14 +32,15 @@ AGENTS = {
     "risk_check_agent": risk_check_agent,
     "feedback_agent": feedback_agent,
     "search_agent": search_agent,
+    "confirm_agent": confirm_agent,
     "ppt_agent": ppt_agent,
 }
 
 # ── 路由表：意图 → 按序执行的 Agent 列表 ─────────────────────
 ROUTES = {
     "full":     ["command_center", "search_agent", "plan_agent", "finance_agent",
-                 "execute_agent", "promote_agent", "risk_check_agent", "feedback_agent",
-                 "ppt_agent"],
+                 "confirm_agent", "execute_agent", "promote_agent",
+                 "risk_check_agent", "feedback_agent", "ppt_agent"],
     "plan":     ["command_center", "search_agent", "plan_agent"],
     "budget":   ["command_center", "plan_agent", "finance_agent"],
     "execute":  ["command_center", "plan_agent", "finance_agent", "execute_agent"],
@@ -142,6 +144,7 @@ def run_graph(user_input: str, input_budget: int = 0, input_participants: int = 
         tweet_content=None,
         risk_report=None,
         reference_cases=None,
+        poster_info_confirmed=None,
         eval_comment=None,
         survey_template=None,
         task_execution_plan=None,

@@ -6,6 +6,7 @@ from agents.promote import promote_agent
 from agents.risk import risk_check_agent
 from agents.feedback import feedback_agent
 from agents.search import search_agent
+from agents.confirm import confirm_agent
 from agents.ppt import ppt_agent
 
 __all__ = [
@@ -17,5 +18,6 @@ __all__ = [
     "risk_check_agent",
     "feedback_agent",
     "search_agent",
+    "confirm_agent",
     "ppt_agent",
 ]

@@ -21,6 +21,7 @@ class ActivityState(TypedDict):
     tweet_content: Optional[str]
     risk_report: Optional[str]
     reference_cases: Optional[str]
+    poster_info_confirmed: Optional[str]
     eval_comment: Optional[str]
     survey_template: Optional[str]
     task_execution_plan: Optional[str]
