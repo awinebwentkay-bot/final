@@ -194,6 +194,12 @@ def print_result(state: dict, intent: str):
         elif key == "ppt_path":
             print(f"\n===== {label} =====")
             print(f"  📊  {value}")
+        elif key == "survey_template":
+            survey_path = export_survey(value)
+            print(f"📋 满意度问卷已生成：{survey_path}")
+        elif key == "risk_report":
+            risk_path = export_risk(value)
+            print(f"📋 风险评估报告已生成：{risk_path}")
         else:
             print(f"\n===== {label} =====")
             print(value)
@@ -349,10 +355,10 @@ def export_to_file(state: dict, intent: str) -> str:
         value = state.get(key)
         if value is None:
             continue
-        if key in ("total_budget", "eval_comment"):
+        if key in ("total_budget", "eval_comment", "risk_report", "survey_template"):
             if key == "total_budget":
                 lines.append(f"## {label}\n\n{value}\n")
-            break  # 输出到总预算即止，后续内容不导出；评价已单独导出
+            break  # 输出到总预算即止；评价和问卷已单独导出
         else:
             lines.append(f"## {label}\n\n{value}\n")
 
@@ -391,6 +397,42 @@ def export_eval(eval_text: str) -> str:
         f"# 师生评价反馈\n\n"
         f"**生成时间：** {datetime.now().strftime('%Y-%m-%d %H:%M')}\n\n"
         f"{eval_text}\n\n"
+        f"---\n*由校园活动策划助手自动生成*"
+    )
+    path.write_text(content, encoding="utf-8")
+    return str(path)
+
+
+SURVEY_DIR = Path("问卷输出")
+
+
+def export_survey(survey_text: str) -> str:
+    """将满意度问卷导出为独立的 Markdown 文档。"""
+    SURVEY_DIR.mkdir(exist_ok=True)
+    now = datetime.now().strftime("%Y%m%d_%H%M%S")
+    path = SURVEY_DIR / f"满意度问卷_{now}.md"
+    content = (
+        f"# 满意度问卷\n\n"
+        f"**生成时间：** {datetime.now().strftime('%Y-%m-%d %H:%M')}\n\n"
+        f"{survey_text}\n\n"
+        f"---\n*由校园活动策划助手自动生成*"
+    )
+    path.write_text(content, encoding="utf-8")
+    return str(path)
+
+
+RISK_DIR = Path("风险评估输出")
+
+
+def export_risk(risk_text: str) -> str:
+    """将风险评估报告导出为独立的 Markdown 文档。"""
+    RISK_DIR.mkdir(exist_ok=True)
+    now = datetime.now().strftime("%Y%m%d_%H%M%S")
+    path = RISK_DIR / f"风险评估报告_{now}.md"
+    content = (
+        f"# 风险评估报告\n\n"
+        f"**生成时间：** {datetime.now().strftime('%Y-%m-%d %H:%M')}\n\n"
+        f"{risk_text}\n\n"
         f"---\n*由校园活动策划助手自动生成*"
     )
     path.write_text(content, encoding="utf-8")
