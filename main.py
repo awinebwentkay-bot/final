@@ -122,7 +122,7 @@ def parse_intent(user_input: str) -> str:
 # ── 运行入口 ──────────────────────────────────────────────────
 def run_graph(user_input: str, input_budget: int = 0,
               input_budget_reimbursable: int = 0, input_budget_non_reimbursable: int = 0,
-              input_participants: int = 0, intent: str = None):
+              input_participants: int = 0, venue_type: str = "室内", intent: str = None):
     if intent is None:
         print("[路由] 正在解析用户意图...", flush=True)
         intent = parse_intent(user_input)
@@ -134,6 +134,7 @@ def run_graph(user_input: str, input_budget: int = 0,
         input_budget_reimbursable=input_budget_reimbursable,
         input_budget_non_reimbursable=input_budget_non_reimbursable,
         input_participants=input_participants,
+        venue_type=venue_type,
         short_memory={},
         history_cases=[],
         activity_plan=None,
@@ -279,6 +280,10 @@ def collect_input() -> tuple:
             print()
             continue
 
+        venue_type = input("  活动场地类型（室内/室外，默认室内）：").strip()
+        if venue_type not in ("室内", "室外"):
+            venue_type = "室内"
+
         budget_reimbursable = input("  可报销经费（元，没有可填 0）：").strip()
         while not budget_reimbursable.isdigit() or int(budget_reimbursable) < 0:
             budget_reimbursable = input("  请输入有效的可报销金额（非负整数）：").strip()
@@ -299,7 +304,7 @@ def collect_input() -> tuple:
         user_intent = (
             f"举办一场{activity_type}，参与人数{participants}人，"
             f"可报销预算{budget_reimbursable}元，不可报销预算（班费）{budget_non_reimbursable}元，"
-            f"需要完整活动方案及相关物料"
+            f"场地类型：{venue_type}，需要完整活动方案及相关物料"
         )
         if details:
             user_intent += f"。\n补充说明：{details}"
@@ -311,6 +316,7 @@ def collect_input() -> tuple:
         print(f"     可报销经费：{budget_reimbursable}元")
         print(f"     不可报销经费（班费）：{budget_non_reimbursable}元")
         print(f"     总预算：{total_budget}元")
+        print(f"     场地类型：{venue_type}")
         if details:
             print(f"     补充说明：{details}")
         confirm = input("  ✅ 确认无误请按 Enter，输入 n 重新填写：").strip().lower()
@@ -318,7 +324,7 @@ def collect_input() -> tuple:
             print()
             continue
 
-        return user_intent, total_budget, int(budget_reimbursable), int(budget_non_reimbursable), int(participants)
+        return user_intent, total_budget, int(budget_reimbursable), int(budget_non_reimbursable), int(participants), venue_type
 
 
 # ── 导出文档 ──────────────────────────────────────────────────
@@ -373,7 +379,7 @@ def export_schedule(schedule_text: str) -> str:
 
 
 if __name__ == "__main__":
-    user_input, total_budget, budget_reimbursable, budget_non_reimbursable, input_participants = collect_input()
+    user_input, total_budget, budget_reimbursable, budget_non_reimbursable, input_participants, venue_type = collect_input()
 
     print()
     result, intent = run_graph(
@@ -382,6 +388,7 @@ if __name__ == "__main__":
         input_budget_reimbursable=budget_reimbursable,
         input_budget_non_reimbursable=budget_non_reimbursable,
         input_participants=input_participants,
+        venue_type=venue_type,
     )
     print()
     print_result(result, intent)

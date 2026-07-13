@@ -9,6 +9,7 @@ class ActivityState(TypedDict):
     input_budget_reimbursable: int
     input_budget_non_reimbursable: int
     input_participants: int
+    venue_type: str
     short_memory: dict
     history_cases: List[dict]
     activity_plan: Optional[str]

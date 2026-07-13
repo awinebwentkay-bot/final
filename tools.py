@@ -1,7 +1,6 @@
 """通用工具函数"""
 
 import os
-import re
 from datetime import datetime
 from pathlib import Path
 
@@ -44,38 +43,48 @@ def export_doc(content: str, filename: str):
 # ── 海报渲染 ──────────────────────────────────────────────
 POSTER_DIR = Path("海报输出")
 
-
-def _svgtag(tag: str, attrs: dict = None, content: str = "") -> str:
-    """生成单个 SVG 标签字符串。"""
-    attr_str = ""
-    if attrs:
-        attr_str = " " + " ".join(f'{k}="{v}"' for k, v in attrs.items())
-    return f"<{tag}{attr_str}>{content}</{tag}>"
+# 从 config 中复用 API key
+DASHSCOPE_API_KEY = "sk-sp-D.LYDLY.6EOn.MEQCIHpNRoRQHs1/WP/nB55d/hoyxo18dW5WwGMxVNOkl2ZFAiA9T+mOdVbKCWWG+MR0R0nHLdfBgwIHRRcpUEK6QDbaTQ=="
 
 
-def _clean_svg(llm_output: str) -> str:
-    """从 LLM 输出中提取纯净 SVG 代码。"""
-    text = llm_output.strip()
-    # 去掉 ```svg ... ``` 或 ``` ... ``` 包裹
-    text = re.sub(r"^```(?:svg)?\s*", "", text)
-    text = re.sub(r"\s*```$", "", text)
-    # 确保以 <svg 开头
-    if not text.startswith("<svg"):
-        start = text.find("<svg")
-        if start != -1:
-            text = text[start:]
-    # 确保以 </svg> 结尾
-    end = text.rfind("</svg>")
-    if end != -1:
-        text = text[: end + 6]
-    return text.strip()
+def generate_poster_image(prompt: str) -> str:
+    """通过 token-plan 兼容端点调用 qwen-image-2.0 生成海报图片，返回本地文件路径。"""
+    import requests
+
+    url = "https://token-plan.cn-beijing.maas.aliyuncs.com/compatible-mode/v1/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {DASHSCOPE_API_KEY}",
+        "Content-Type": "application/json",
+    }
+    body = {
+        "model": "qwen-image-2.0",
+        "messages": [
+            {
+                "role": "user",
+                "content": [
+                    {"text": prompt},
+                ],
+            }
+        ],
+    }
+    resp = requests.post(url, headers=headers, json=body, timeout=120)
+    resp.raise_for_status()
+    data = resp.json()
+    image_url = data["output"]["choices"][0]["message"]["content"][0]["image"]
+    return _download_image(image_url)
 
 
-def save_poster_svg(svg_code: str, template_name: str) -> str:
-    """保存 SVG 海报到文件，返回文件路径。"""
+def _download_image(url: str) -> str:
+    """下载图片到本地海报目录，返回文件路径。"""
+    import requests
+
     POSTER_DIR.mkdir(exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"海报_{template_name}_{timestamp}.svg"
+    ext = url.split(".")[-1].split("?")[0] or "png"
+    filename = f"海报_{timestamp}.{ext}"
     path = POSTER_DIR / filename
-    path.write_text(svg_code, encoding="utf-8")
+
+    resp = requests.get(url, timeout=30)
+    resp.raise_for_status()
+    path.write_bytes(resp.content)
     return str(path)

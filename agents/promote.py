@@ -1,13 +1,11 @@
-"""宣传节点：生成公众号推文 + 抽卡式海报生成（预置 SVG 模板）"""
+"""宣传节点：生成公众号推文 + qwen-image-2.0 海报生成"""
 
 import json
-import random
 
 from models import ActivityState
 from config import llm
-from tools import save_poster_svg
-from agents.poster_templates import TEMPLATES, render_poster
-from prompts import PROMOTE_TWEET, REGULATION_APPROVAL
+from tools import generate_poster_image
+from prompts import PROMOTE_TWEET, POSTER_IMAGE_PROMPT, REGULATION_APPROVAL
 
 
 def promote_agent(state: ActivityState) -> ActivityState:
@@ -31,12 +29,12 @@ def promote_agent(state: ActivityState) -> ActivityState:
         return state
     state["need_poster"] = True
 
-    # ── 读取确认信息 ────────────────────────────────────────
+    # ── 读取已确认信息 ──────────────────────────────────────
     confirmed = state.get("poster_info_confirmed", "{}")
     try:
-        poster_info = json.loads(confirmed)
+        info = json.loads(confirmed)
     except (json.JSONDecodeError, TypeError):
-        poster_info = {
+        info = {
             "title": "校园活动",
             "subtitle": "",
             "date": "待定",
@@ -47,82 +45,37 @@ def promote_agent(state: ActivityState) -> ActivityState:
             "target_audience": "全校师生",
         }
 
-    # ── AI 推荐模板 ─────────────────────────────────────────
-    template_names = [t["name"] for t in TEMPLATES]
+    # ── 征求风格意见 ────────────────────────────────────────
+    print(f"\n  🎨 请选择海报风格：")
+    print(f"     1. 清新简洁 — 白色/浅灰背景，彩色标题，卡片式排列")
+    print(f"     2. 热血活力 — 渐变背景，粗体大字，动感元素")
+    print(f"     3. 典雅文艺 — 暖棕底色，柔和光影，文艺元素")
+    print(f"     4. 科技未来 — 深色背景，霓虹渐变，科技感")
+    print(f"     5. 国风古典 — 水墨/宣纸底，书法标题，传统纹样")
+    style_choice = input("  请输入编号（1-5，默认 1）：").strip()
+    style_map = {"1": "清新简洁", "2": "热血活力", "3": "典雅文艺", "4": "科技未来", "5": "国风古典"}
+    chosen_style = style_map.get(style_choice, "清新简洁")
 
-    print(f"  [宣传] AI 正在分析活动类型，推荐最匹配的模板...", flush=True)
-    rec_prompt = (
-        "从以下模板中选出最匹配该活动的一张，只输出模板名称：\n\n"
-        + "\n".join(f"{i+1}. {t['name']} — {t['desc']}" for i, t in enumerate(TEMPLATES))
-        + f"\n\n活动策划案：\n{plan}\n\n最匹配的模板名称："
-    )
-    recommended = llm.invoke(rec_prompt).content.strip()
+    # ── 生成海报图片 ────────────────────────────────────────
+    print(f"  [宣传] AI 正在生成海报描述（风格：{chosen_style}）...", flush=True)
+    image_prompt = llm.invoke(POSTER_IMAGE_PROMPT.format(style=chosen_style, **info)).content.strip()
 
-    if recommended in template_names:
-        template_names.remove(recommended)
-        random.shuffle(template_names)
-        template_names.insert(0, recommended)
-        print(f"  🎯 AI 推荐：{recommended}")
-    else:
-        random.shuffle(template_names)
-        print(f"  (AI 推荐未能识别，随机抽取)")
+    print(f"  [宣传] 正在调用 qwen-image-2.0 生成海报图片...", flush=True)
+    print(f"  prompt: {image_prompt[:80]}...", flush=True)
 
-    print(f"\n{'=' * 50}")
-    print(f"  🎴 抽卡式海报生成（预置模板·即开即用）")
-    print(f"  首张为 AI 推荐模板，不满意可 r 换模板或 e 重生成")
-    print(f"{'=' * 50}")
-
-    for i, tpl_name in enumerate(template_names):
-        tpl = next(t for t in TEMPLATES if t["name"] == tpl_name)
-
-        for attempt in range(5):
-            print(f"\n  ── {tpl_name}（第 {attempt+1} 版）──")
-            print(f"  {tpl['desc']}")
-            print(f"  [生成中...]", flush=True)
-
-            svg_code = render_poster(poster_info, tpl_name)
-            filepath = save_poster_svg(svg_code, tpl_name)
-            state["poster_image"] = filepath
-            state["poster_copy"] = (
-                f"海报模板：{tpl_name}\n"
-                f"文件路径：{filepath}\n"
-                f"活动标题：{poster_info.get('title', '')}\n"
-                f"时间：{poster_info.get('date', '')} {poster_info.get('time', '')}\n"
-                f"地点：{poster_info.get('venue', '')}\n"
-                f"主办方：{poster_info.get('organizer', '')}"
-            )
-            print(f"  ✅ 已保存：{filepath}")
-
-            prompt_text = (
-                f"\n  💡 操作："
-                f"输入 r 换模板 / e 重新生成 / Enter 确认"
-            )
-            if i == len(template_names) - 1:
-                prompt_text = prompt_text.replace("r 换模板 / ", "")
-
-            raw = input(prompt_text + "\n  > ").strip()
-            choice = raw.lower()
-
-            if choice == "":
-                break
-            elif choice == "r":
-                if i == len(template_names) - 1:
-                    print(f"  (已是最后一张模板，无法切换)")
-                    continue
-                break
-            elif choice == "e":
-                print(f"  [重新生成...]", flush=True)
-                continue
-            else:
-                print(f"  (请输入 r / e / Enter)")
-                continue
-
-        if choice == "r":
-            continue
-        else:
-            break
-
-    state["log"].append(f"【宣传】海报生成完成（模板：{tpl_name}）")
-    print(f"  ✅ 最终海报：{state['poster_image']}")
+    try:
+        filepath = generate_poster_image(image_prompt)
+        state["poster_image"] = filepath
+        state["poster_copy"] = (
+            f"海报文件：{filepath}\n"
+            f"生成模型：qwen-image-2.0\n"
+        )
+        state["log"].append(f"【宣传】海报图片生成完成：{filepath}")
+        print(f"  ✅ 海报已生成：{filepath}")
+    except Exception as e:
+        error_msg = f"海报生成失败：{e}"
+        state["poster_image"] = None
+        state["log"].append(f"【宣传】{error_msg}")
+        print(f"  ❌ {error_msg}")
 
     return state
