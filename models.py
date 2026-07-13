@@ -17,6 +17,7 @@ class ActivityState(TypedDict):
     host_script: Optional[str]
     notice_text: Optional[str]
     poster_copy: Optional[str]
+    poster_image: Optional[str]
     tweet_content: Optional[str]
     risk_report: Optional[str]
     reference_cases: Optional[str]

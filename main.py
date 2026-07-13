@@ -52,6 +52,7 @@ FIELD_LABELS = {
     "host_script":    "主持稿",
     "notice_text":    "通知文案",
     "poster_copy":    "海报文案",
+    "poster_image":   "海报图片",
     "tweet_content":  "推文内容",
     "risk_report":    "风险评估报告",
     "eval_comment":   "师生评价反馈",
@@ -60,11 +61,11 @@ FIELD_LABELS = {
 
 OUTPUT_FIELDS = {
     "full":     ["activity_plan", "total_budget", "schedule", "poster_copy",
-                 "risk_report", "survey_template"],
+                 "poster_image", "risk_report", "survey_template"],
     "plan":     ["activity_plan"],
     "budget":   ["activity_plan", "total_budget"],
     "execute":  ["activity_plan", "total_budget", "schedule", "host_script", "notice_text"],
-    "promote":  ["activity_plan", "poster_copy", "tweet_content"],
+    "promote":  ["activity_plan", "poster_copy", "poster_image", "tweet_content"],
     "risk":     ["activity_plan", "risk_report"],
     "feedback": ["activity_plan", "eval_comment", "survey_template"],
 }
@@ -133,6 +134,7 @@ def run_graph(user_input: str, input_budget: int = 0, input_participants: int = 
         host_script=None,
         notice_text=None,
         poster_copy=None,
+        poster_image=None,
         tweet_content=None,
         risk_report=None,
         reference_cases=None,
@@ -163,11 +165,13 @@ def print_result(state: dict, intent: str):
             continue
 
         if key == "activity_plan":
-            # 策划案自动导出为文档，不在终端输出
             filepath = export_to_file(state, intent)
             print(f"✅ 策划案已生成：{filepath}")
         elif key == "total_budget":
             print(f"\n===== {label} ===== {value}")
+        elif key == "poster_image":
+            print(f"\n===== {label} =====")
+            print(f"  🖼️  {value}")
         else:
             print(f"\n===== {label} =====")
             print(value)
