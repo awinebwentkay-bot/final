@@ -255,7 +255,6 @@ def collect_input() -> tuple:
             if choice == "2":
                 print("  已退出程序。")
                 exit(0)
-            # choice == "1": 重新开始
             print()
             continue
 
@@ -263,10 +262,32 @@ def collect_input() -> tuple:
         while not budget.isdigit() or int(budget) < 0:
             budget = input("  请输入有效的预算金额（非负整数）：").strip()
 
+        # ── 补充说明 ────────────────────────────────────────
+        print("\n  📝 补充说明（可选，直接 Enter 跳过）：")
+        print("     可以描述活动主题、特殊要求、形式细节、目标人群等")
+        print("     例如：主题是'AI赋能未来'，希望有互动环节，面向计算机系学生")
+        details = input("  > ").strip()
+
+        # ── 组装完整需求 ────────────────────────────────────
         user_intent = (
             f"举办一场{activity_type}，参与人数{participants}人，"
             f"预算{budget}元，需要完整活动方案及相关物料"
         )
+        if details:
+            user_intent += f"。\n补充说明：{details}"
+
+        # 给用户确认机会
+        print(f"\n  📋 需求确认：")
+        print(f"     活动类型：{activity_type}")
+        print(f"     参与人数：{participants}人")
+        print(f"     预  算：{budget}元")
+        if details:
+            print(f"     补充说明：{details}")
+        confirm = input("  ✅ 确认无误请按 Enter，输入 n 重新填写：").strip().lower()
+        if confirm == "n":
+            print()
+            continue
+
         return user_intent, int(budget), int(participants)
 
 
