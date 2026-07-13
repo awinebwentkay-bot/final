@@ -18,6 +18,9 @@ class ActivityState(TypedDict):
     schedule: Optional[str]
     host_script: Optional[str]
     notice_text: Optional[str]
+    need_host: bool
+    need_ppt: bool
+    need_poster: bool
     poster_copy: Optional[str]
     poster_image: Optional[str]
     tweet_content: Optional[str]

@@ -41,14 +41,34 @@ def execute_agent(state: ActivityState) -> ActivityState:
     regulations = REGULATION_APPROVAL
     print(f"[执行] 正在生成活动日程...", flush=True)
     sch = llm.invoke(EXECUTE_SCHEDULE.format(plan=plan, venue=venue, regulations=regulations)).content
-    print(f"[执行] 正在生成主持稿...", flush=True)
-    script = llm.invoke(EXECUTE_SCRIPT.format(plan=plan)).content
+    state["schedule"] = sch
+
+    # ── 是否需要主持人 ──────────────────────────────────────
+    need_host = input("\n  🎤 是否需要主持人？（y/n，默认 y）：").strip().lower()
+    if need_host not in ("n", "no", "否"):
+        need_host = True
+        print(f"[执行] 正在生成主持稿...", flush=True)
+        script = llm.invoke(EXECUTE_SCRIPT.format(plan=plan)).content
+        state["host_script"] = script
+        state["need_host"] = True
+
+        # ── 是否需要PPT ─────────────────────────────────────
+        need_ppt = input("\n  📊 是否需要生成 PPT 演示文稿？（y/n，默认 y）：").strip().lower()
+        if need_ppt in ("n", "no", "否"):
+            state["need_ppt"] = False
+            print("[执行] 跳过 PPT 生成", flush=True)
+        else:
+            state["need_ppt"] = True
+    else:
+        state["need_host"] = False
+        state["need_ppt"] = False
+        state["host_script"] = None
+        print("[执行] 跳过主持稿和 PPT 生成", flush=True)
+
     print(f"[执行] 正在生成通知文案...", flush=True)
     notice = llm.invoke(EXECUTE_NOTICE.format(plan=plan, regulations=regulations)).content
-    state["schedule"] = sch
-    state["host_script"] = script
     state["notice_text"] = notice
-    state["log"].append("【执行】日程、主持稿、通知生成完成")
+    state["log"].append("【执行】日程、通知生成完成")
 
     # ── 策划案拆解与任务排期 ────────────────────────────────
     print(f"[执行] 正在解析策划案并拆解任务...", flush=True)

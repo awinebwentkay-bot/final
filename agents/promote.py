@@ -22,6 +22,15 @@ def promote_agent(state: ActivityState) -> ActivityState:
     state["poster_image"] = ""
     state["log"].append("【宣传】推文生成完成")
 
+    # ── 是否需要海报 ────────────────────────────────────────
+    need_poster = input("\n  🖼️ 是否需要生成海报？（y/n，默认 y）：").strip().lower()
+    if need_poster in ("n", "no", "否"):
+        state["need_poster"] = False
+        state["log"].append("【宣传】用户选择不生成海报，已跳过")
+        print("[宣传] 跳过海报生成", flush=True)
+        return state
+    state["need_poster"] = True
+
     # ── 读取确认信息 ────────────────────────────────────────
     confirmed = state.get("poster_info_confirmed", "{}")
     try:

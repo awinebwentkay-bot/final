@@ -133,6 +133,12 @@ def _parse_task_roles(task_json: str) -> list[str]:
 
 def ppt_agent(state: ActivityState) -> ActivityState:
     """生成面向主持人现场推进流程的手卡式 PPT。"""
+    if not state.get("need_ppt", True):
+        state["ppt_path"] = None
+        state["log"].append("【PPT】用户选择不生成 PPT，已跳过")
+        print("[PPT] 用户选择不生成 PPT，已跳过", flush=True)
+        return state
+
     plan = state.get("activity_plan", "")
     schedule = state.get("schedule", "")
     host_script = state.get("host_script", "")

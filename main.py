@@ -143,6 +143,9 @@ def run_graph(user_input: str, input_budget: int = 0,
         schedule=None,
         host_script=None,
         notice_text=None,
+        need_host=True,
+        need_ppt=True,
+        need_poster=True,
         poster_copy=None,
         poster_image=None,
         tweet_content=None,
@@ -181,6 +184,9 @@ def print_result(state: dict, intent: str):
             print(f"✅ 策划案已生成：{filepath}")
         elif key == "total_budget":
             print(f"\n===== {label} ===== {value}")
+        elif key == "schedule":
+            filepath = export_schedule(value)
+            print(f"📋 活动日程已生成：{filepath}")
         elif key == "poster_image":
             print(f"\n===== {label} =====")
             print(f"  🖼️  {value}")
@@ -345,6 +351,24 @@ def export_to_file(state: dict, intent: str) -> str:
 
     lines.append("---\n*由校园活动策划助手自动生成*")
     path.write_text("\n".join(lines), encoding="utf-8")
+    return str(path)
+
+
+SCHEDULE_DIR = Path("日程输出")
+
+
+def export_schedule(schedule_text: str) -> str:
+    """将活动日程导出为独立的 Markdown 文档。"""
+    SCHEDULE_DIR.mkdir(exist_ok=True)
+    now = datetime.now().strftime("%Y%m%d_%H%M%S")
+    path = SCHEDULE_DIR / f"活动日程_{now}.md"
+    content = (
+        f"# 活动日程\n\n"
+        f"**生成时间：** {datetime.now().strftime('%Y-%m-%d %H:%M')}\n\n"
+        f"{schedule_text}\n\n"
+        f"---\n*由校园活动策划助手自动生成*"
+    )
+    path.write_text(content, encoding="utf-8")
     return str(path)
 
 
