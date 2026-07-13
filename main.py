@@ -138,6 +138,7 @@ def run_graph(user_input: str, input_budget: int = 0, input_participants: int = 
         reference_cases=None,
         eval_comment=None,
         survey_template=None,
+        task_execution_plan=None,
         log=[],
     )
 

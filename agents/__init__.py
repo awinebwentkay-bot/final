@@ -6,7 +6,6 @@ from agents.promote import promote_agent
 from agents.risk import risk_check_agent
 from agents.feedback import feedback_agent
 from agents.search import search_agent
-from agents.execute import task_executor
 
 __all__ = [
     "command_center",
@@ -16,6 +15,5 @@ __all__ = [
     "promote_agent",
     "risk_check_agent",
     "feedback_agent",
-"search_agent",
-    "task_executor",
+    "search_agent",
 ]
