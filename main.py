@@ -69,8 +69,8 @@ FIELD_LABELS = {
 }
 
 OUTPUT_FIELDS = {
-    "full":     ["activity_plan", "total_budget", "schedule", "poster_copy",
-                 "poster_image", "risk_report", "survey_template", "ppt_path", "html_path"],
+    "full":     ["activity_plan", "total_budget", "schedule", "host_script",
+                 "poster_copy", "poster_image", "risk_report", "survey_template", "ppt_path", "html_path"],
     "plan":     ["activity_plan"],
     "budget":   ["activity_plan", "total_budget"],
     "execute":  ["activity_plan", "total_budget", "schedule", "host_script", "notice_text"],
@@ -207,6 +207,9 @@ def print_result(state: dict, intent: str):
         elif key == "risk_report":
             risk_path = export_risk(value)
             print(f"📋 风险评估报告已生成：{risk_path}")
+        elif key == "host_script":
+            script_path = export_script(value)
+            print(f"📋 主持稿已生成：{script_path}")
         else:
             print(f"\n===== {label} =====")
             print(value)
@@ -362,7 +365,7 @@ def export_to_file(state: dict, intent: str) -> str:
         value = state.get(key)
         if value is None:
             continue
-        if key in ("total_budget", "eval_comment", "risk_report", "survey_template"):
+        if key in ("total_budget", "eval_comment", "risk_report", "survey_template", "host_script"):
             if key == "total_budget":
                 lines.append(f"## {label}\n\n{value}\n")
             break  # 输出到总预算即止；评价和问卷已单独导出
@@ -440,6 +443,24 @@ def export_risk(risk_text: str) -> str:
         f"# 风险评估报告\n\n"
         f"**生成时间：** {datetime.now().strftime('%Y-%m-%d %H:%M')}\n\n"
         f"{risk_text}\n\n"
+        f"---\n*由校园活动策划助手自动生成*"
+    )
+    path.write_text(content, encoding="utf-8")
+    return str(path)
+
+
+SCRIPT_DIR = Path("主持稿输出")
+
+
+def export_script(script_text: str) -> str:
+    """将主持串场词导出为独立的 Markdown 文档。"""
+    SCRIPT_DIR.mkdir(exist_ok=True)
+    now = datetime.now().strftime("%Y%m%d_%H%M%S")
+    path = SCRIPT_DIR / f"主持稿_{now}.md"
+    content = (
+        f"# 主持串场词\n\n"
+        f"**生成时间：** {datetime.now().strftime('%Y-%m-%d %H:%M')}\n\n"
+        f"{script_text}\n\n"
         f"---\n*由校园活动策划助手自动生成*"
     )
     path.write_text(content, encoding="utf-8")

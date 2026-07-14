@@ -18,7 +18,8 @@ REVIEW_PROMPT = """
 - 这是一篇活动**结束后**的回顾总结，不是活动预告
 - 纯活动内容回顾，**不要提**申请流程、审批规定、规章等前置内容
 - 语气轻松活泼，面向校园读者
-- 重点描述活动亮点、现场氛围、参与者感受
+- 重点描述活动流程、亮点、现场氛围、参与者感受
+- 按活动的实际先后顺序描述各个环节
 - 3-5 个自然段，每段 2-4 句话
 - 结尾加一句对参与者的感谢
 
@@ -100,7 +101,6 @@ def _llm_generate(prompt: str, fallback: str = "") -> str:
 
 def _build_html(state: dict) -> str:
     plan = state.get("activity_plan") or ""
-    schedule = state.get("schedule") or ""
     poster_path = state.get("poster_image") or ""
 
     # 获取确认信息
@@ -127,17 +127,30 @@ def _build_html(state: dict) -> str:
     review_text = _llm_generate(REVIEW_PROMPT.format(plan=plan), "活动圆满结束，感谢所有参与者！")
     review_paragraphs = [p.strip() for p in review_text.split("\n") if p.strip()]
 
-    # ── 解析日程为时间线 ──
-    timeline_items = []
-    for line in schedule.split("\n"):
-        line = line.strip("- ").strip()
-        if not line:
+    # ── 从策划案中提取活动流程 ──
+    flow_lines = []
+    in_flow = False
+    for line in plan.split("\n"):
+        s = line.strip()
+        if re.search(r"活动流程|活动环节|活动安排|流程", s) and ("##" in s or "#" in s):
+            in_flow = True
             continue
-        m = re.match(r"^[-\d:：\s]*(\d{1,2}[:：]\d{2})[-~至到]?\s*(\d{1,2}[:：]\d{2})?", line)
-        if m:
-            t = m.group(0).strip("- ").strip()[:10]
-            rest = line[m.end():].strip("- ").strip()
-            timeline_items.append((t, rest))
+        if in_flow:
+            if s.startswith("##") and "流程" not in s and "环节" not in s and "安排" not in s:
+                break
+            if s and not s.startswith("#"):
+                # 去掉编号前缀和人数标记
+                s = re.sub(r"^\d+[.、）)\)]\s*", "", s)
+                s = re.sub(r"（\d+分钟）", "", s)
+                s = re.sub(r"（需\d+人）", "", s)
+                s = re.sub(r"\(需\d+人\)", "", s)
+                if s:
+                    flow_lines.append(s.strip())
+
+    flow_html = ""
+    if flow_lines:
+        items = "".join(f'<li>{line}</li>' for line in flow_lines)
+        flow_html = f'<div class="section"><h2>📋 活动流程</h2><ol style="padding-left:20px;font-size:15px;color:#333;line-height:2">{items}</ol></div>'
 
     # ── 海报图片（base64 嵌入，避免 file:// 跨域拦截） ──
     poster_img_tag = ""
@@ -156,19 +169,6 @@ def _build_html(state: dict) -> str:
     if organizer:
         meta_parts.append(organizer)
     meta_str = " ｜ ".join(meta_parts)
-
-    # 时间线
-    timeline_html = ""
-    if timeline_items:
-        timeline_html = '<div class="section"><h2>📋 活动流程</h2><div class="timeline">'
-        for t, desc in timeline_items:
-            timeline_html += f"""
-        <div class="timeline-item">
-            <div class="timeline-time">{t}</div>
-            <div class="timeline-dot"></div>
-            <div class="timeline-content">{desc}</div>
-        </div>"""
-        timeline_html += "</div></div>"
 
     # 回顾正文
     body_html = ""
@@ -218,7 +218,7 @@ def _build_html(state: dict) -> str:
 
     {body_html}
 
-    {timeline_html}
+    {flow_html}
 
     {poster_img_tag}
 
