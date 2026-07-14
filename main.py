@@ -20,6 +20,7 @@ from agents import (
     search_agent,
     confirm_agent,
     ppt_agent,
+    html_agent,
 )
 
 # ── Agent 注册表 ──────────────────────────────────────────────
@@ -34,13 +35,14 @@ AGENTS = {
     "search_agent": search_agent,
     "confirm_agent": confirm_agent,
     "ppt_agent": ppt_agent,
+    "html_agent": html_agent,
 }
 
 # ── 路由表：意图 → 按序执行的 Agent 列表 ─────────────────────
 ROUTES = {
     "full":     ["command_center", "search_agent", "plan_agent", "finance_agent",
                  "confirm_agent", "execute_agent", "promote_agent",
-                 "risk_check_agent", "feedback_agent", "ppt_agent"],
+                 "risk_check_agent", "feedback_agent", "ppt_agent", "html_agent"],
     "plan":     ["command_center", "search_agent", "plan_agent"],
     "budget":   ["command_center", "plan_agent", "finance_agent"],
     "execute":  ["command_center", "plan_agent", "finance_agent", "execute_agent"],
@@ -63,11 +65,12 @@ FIELD_LABELS = {
     "eval_comment":   "师生评价反馈",
     "survey_template": "满意度问卷",
     "ppt_path":       "PPT演示文稿",
+    "html_path":      "公众号推文",
 }
 
 OUTPUT_FIELDS = {
     "full":     ["activity_plan", "total_budget", "schedule", "poster_copy",
-                 "poster_image", "risk_report", "survey_template", "ppt_path"],
+                 "poster_image", "risk_report", "survey_template", "ppt_path", "html_path"],
     "plan":     ["activity_plan"],
     "budget":   ["activity_plan", "total_budget"],
     "execute":  ["activity_plan", "total_budget", "schedule", "host_script", "notice_text"],
@@ -157,6 +160,7 @@ def run_graph(user_input: str, input_budget: int = 0,
         survey_template=None,
         task_execution_plan=None,
         ppt_path=None,
+        html_path=None,
         log=[],
     )
 
@@ -194,6 +198,9 @@ def print_result(state: dict, intent: str):
         elif key == "ppt_path":
             print(f"\n===== {label} =====")
             print(f"  📊  {value}")
+        elif key == "html_path":
+            print(f"\n===== {label} =====")
+            print(f"  📄  {value}")
         elif key == "survey_template":
             survey_path = export_survey(value)
             print(f"📋 满意度问卷已生成：{survey_path}")

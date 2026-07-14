@@ -8,6 +8,7 @@ from agents.feedback import feedback_agent
 from agents.search import search_agent
 from agents.confirm import confirm_agent
 from agents.ppt import ppt_agent
+from agents.html import html_agent
 
 __all__ = [
     "command_center",
@@ -20,4 +21,5 @@ __all__ = [
     "search_agent",
     "confirm_agent",
     "ppt_agent",
+    "html_agent",
 ]

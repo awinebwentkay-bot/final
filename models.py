@@ -32,4 +32,5 @@ class ActivityState(TypedDict):
     survey_template: Optional[str]
     task_execution_plan: Optional[str]
     ppt_path: Optional[str]
+    html_path: Optional[str]
     log: List[str]
