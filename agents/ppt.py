@@ -125,9 +125,9 @@ def _get_confirmed_info(state: dict) -> dict:
 # PPT-A：主持人手卡（完整主持词，活动当天逐页使用）
 # ══════════════════════════════════════════════════════════════
 def _build_host_card(prs: Presentation, state: dict) -> str:
-    plan = state.get("activity_plan", "")
-    schedule = state.get("schedule", "")
-    host_script = state.get("host_script", "")
+    plan = state.get("activity_plan") or ""
+    schedule = state.get("schedule") or ""
+    host_script = state.get("host_script") or ""
     info = _get_confirmed_info(state)
 
     title_text = _find_title(plan)

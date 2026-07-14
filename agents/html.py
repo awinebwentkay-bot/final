@@ -1,6 +1,8 @@
 """HTML 生成节点：生成微信公众号风格的活动总结推文"""
 
+import base64
 import json
+import re
 from datetime import datetime
 from pathlib import Path
 
@@ -9,17 +11,43 @@ from config import llm
 
 HTML_DIR = Path("公众号推文")
 
+REVIEW_PROMPT = """
+你是一位校园公众号小编。请根据以下活动策划案，写一篇**活动回顾推文**。
+
+要求：
+- 这是一篇活动**结束后**的回顾总结，不是活动预告
+- 纯活动内容回顾，**不要提**申请流程、审批规定、规章等前置内容
+- 语气轻松活泼，面向校园读者
+- 重点描述活动亮点、现场氛围、参与者感受
+- 3-5 个自然段，每段 2-4 句话
+- 结尾加一句对参与者的感谢
+
+策划案内容：
+{plan}
+"""
+
+INTRO_PROMPT = """
+你是一位校园活动小编。请根据以下策划案，写一段**活动简介**（2-3句话）。
+
+要求：
+- 简洁介绍本次活动是什么、有什么亮点
+- 语气轻松活泼，适合公众号推文
+- 不要出现"根据"、"作为"、"为您"等套话
+- 直接描述活动本身
+
+策划案内容：
+{plan}
+"""
+
 
 def _css() -> str:
     return """
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:#F5F5F5;font-family:-apple-system,'Microsoft YaHei','PingFang SC',sans-serif;padding:20px 0}
 .article{max-width:640px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.06)}
-.banner{width:100%;height:auto;display:block}
 .header{padding:30px 24px 20px;text-align:center}
 .header h1{font-size:22px;font-weight:700;color:#1a1a1a;line-height:1.5;margin-bottom:12px}
 .header .meta{font-size:13px;color:#999}
-.header .meta span{margin:0 8px}
 .section{padding:10px 24px 20px}
 .section h2{font-size:17px;font-weight:700;color:#1a1a1a;margin-bottom:12px;padding-left:12px;border-left:3px solid #1A56DB}
 .section p{font-size:15px;color:#333;line-height:1.8;margin-bottom:10px;text-align:justify}
@@ -40,15 +68,43 @@ body{background:#F5F5F5;font-family:-apple-system,'Microsoft YaHei','PingFang SC
 """
 
 
+def _image_to_base64(path: str) -> str:
+    """将图片文件转为 base64 data URI。"""
+    try:
+        p = Path(path)
+        if not p.exists():
+            # 尝试从相对路径解析
+            p = Path.cwd() / path
+        if not p.exists():
+            return ""
+        data = p.read_bytes()
+        ext = p.suffix.lower()
+        mime = {"png": "image/png", "jpg": "image/jpeg", "jpeg": "image/jpeg",
+                 "svg": "image/svg+xml", "webp": "image/webp"}.get(ext.lstrip("."), "image/png")
+        return f"data:{mime};base64,{base64.b64encode(data).decode()}"
+    except Exception:
+        return ""
+
+
+def _llm_generate(prompt: str, fallback: str = "") -> str:
+    """调用 LLM 生成内容，失败时返回 fallback。"""
+    try:
+        resp = llm.invoke(prompt).content
+        text = resp.strip()
+        # 去掉可能的思考标记
+        text = re.sub(r'^.*?思考', '', text, flags=re.DOTALL).strip()
+        return text
+    except Exception:
+        return fallback
+
+
 def _build_html(state: dict) -> str:
-    plan = state.get("activity_plan", "")
-    schedule = state.get("schedule", "")
-    notice = state.get("notice_text", "")
-    poster_path = state.get("poster_image", "")
-    tweet = state.get("tweet_content", "")
+    plan = state.get("activity_plan") or ""
+    schedule = state.get("schedule") or ""
+    poster_path = state.get("poster_image") or ""
 
     # 获取确认信息
-    confirmed = state.get("poster_info_confirmed", "{}")
+    confirmed = state.get("poster_info_confirmed") or "{}"
     try:
         info = json.loads(confirmed)
     except (json.JSONDecodeError, TypeError):
@@ -62,16 +118,16 @@ def _build_html(state: dict) -> str:
     venue = info.get("venue", "")
     audience = info.get("target_audience", "")
 
-    # 从策划案提取概述段落
-    plan_lines = [l.strip("- ").strip() for l in plan.split("\n") if l.strip() and not l.startswith("#")]
-    summary = ""
-    for line in plan_lines:
-        if len(line) > 10 and not line.startswith("##"):
-            summary = line
-            break
+    # ── LLM 生成活动简介 ──
+    print(f"  [HTML] 正在生成活动简介...", flush=True)
+    summary = _llm_generate(INTRO_PROMPT.format(plan=plan), "一场精彩的活动，等你来回顾。")
 
-    # 解析日程为时间线
-    import re
+    # ── LLM 生成回顾正文 ──
+    print(f"  [HTML] 正在生成活动回顾正文...", flush=True)
+    review_text = _llm_generate(REVIEW_PROMPT.format(plan=plan), "活动圆满结束，感谢所有参与者！")
+    review_paragraphs = [p.strip() for p in review_text.split("\n") if p.strip()]
+
+    # ── 解析日程为时间线 ──
     timeline_items = []
     for line in schedule.split("\n"):
         line = line.strip("- ").strip()
@@ -83,22 +139,15 @@ def _build_html(state: dict) -> str:
             rest = line[m.end():].strip("- ").strip()
             timeline_items.append((t, rest))
 
-    # 推文内容作为正文
-    body_paragraphs = []
-    if tweet:
-        for line in tweet.split("\n"):
-            line = line.strip()
-            if line and not line.startswith("#") and not line.startswith("```"):
-                body_paragraphs.append(line)
-
-    # 提取通知关键信息
-    notice_lines = [l for l in notice.split("\n") if l.strip() and "注意" not in l[:6]][:3]
-
-    # 海报图片（相对路径转可显示路径）
+    # ── 海报图片（base64 嵌入，避免 file:// 跨域拦截） ──
     poster_img_tag = ""
     if poster_path:
-        # 尝试找 SVG 文件
-        poster_img_tag = f'<div class="poster-box"><img src="../{poster_path}" alt="活动海报" loading="lazy"><p class="caption">📌 活动海报</p></div>'
+        b64 = _image_to_base64(poster_path)
+        if b64:
+            poster_img_tag = f'<div class="poster-box"><img src="{b64}" alt="活动海报" loading="lazy"><p class="caption">📌 活动海报</p></div>'
+        else:
+            # 兜底：用相对路径
+            poster_img_tag = f'<div class="poster-box"><img src="../{poster_path}" alt="活动海报" loading="lazy"><p class="caption">📌 活动海报</p></div>'
 
     # ── 组装 HTML ──
     meta_parts = []
@@ -108,7 +157,7 @@ def _build_html(state: dict) -> str:
         meta_parts.append(organizer)
     meta_str = " ｜ ".join(meta_parts)
 
-    # 时间线 HTML
+    # 时间线
     timeline_html = ""
     if timeline_items:
         timeline_html = '<div class="section"><h2>📋 活动流程</h2><div class="timeline">'
@@ -121,11 +170,11 @@ def _build_html(state: dict) -> str:
         </div>"""
         timeline_html += "</div></div>"
 
-    # 正文段落
+    # 回顾正文
     body_html = ""
-    if body_paragraphs:
+    if review_paragraphs:
         body_html = '<div class="section"><h2>📝 活动回顾</h2>'
-        for p in body_paragraphs[:8]:
+        for p in review_paragraphs:
             body_html += f"<p>{p}</p>"
         body_html += "</div>"
 
