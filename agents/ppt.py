@@ -122,7 +122,7 @@ def _get_confirmed_info(state: dict) -> dict:
 
 
 # ══════════════════════════════════════════════════════════════
-# PPT-A：主持人手卡（紧凑·流程导向·含主要角色）
+# PPT-A：主持人手卡（完整主持词，活动当天逐页使用）
 # ══════════════════════════════════════════════════════════════
 def _build_host_card(prs: Presentation, state: dict) -> str:
     plan = state.get("activity_plan", "")
@@ -132,6 +132,40 @@ def _build_host_card(prs: Presentation, state: dict) -> str:
 
     title_text = _find_title(plan)
     segments = _parse_segments(schedule) or [{"time": "", "activity": "（日程待生成）", "detail": ""}]
+
+    # 将主持稿按环节分段
+    script_lines = [l.strip() for l in host_script.split("\n") if l.strip()]
+    # 尝试按环节标记分段
+    script_segments = []
+    current_seg = []
+    seg_keywords = [seg["activity"][:6] for seg in segments]
+
+    for line in script_lines:
+        # 如果该行匹配某个环节，开始新段
+        matched = False
+        for kw in seg_keywords:
+            if kw and kw in line[:10]:
+                if current_seg:
+                    script_segments.append("\n".join(current_seg))
+                current_seg = [line]
+                matched = True
+                break
+        if not matched:
+            current_seg.append(line)
+    if current_seg:
+        script_segments.append("\n".join(current_seg))
+
+    # 如果分段数与环节数不匹配，就按环节数均分
+    if len(script_segments) != len(segments):
+        if len(script_lines) >= len(segments):
+            chunk = max(1, len(script_lines) // len(segments))
+            script_segments = []
+            for i in range(len(segments)):
+                start = i * chunk
+                end = start + chunk if i < len(segments) - 1 else len(script_lines)
+                script_segments.append("\n".join(script_lines[start:end]))
+        else:
+            script_segments = [host_script] * len(segments)
 
     # ── Slide 1: 封面 ──
     s = prs.slides.add_slide(prs.slide_layouts[6])
@@ -146,7 +180,7 @@ def _build_host_card(prs: Presentation, state: dict) -> str:
         _textbox(s, Inches(0.5), Inches(4.0), Inches(9), Inches(0.5),
                  f"📍 {info['venue']}", size=14, color=C_GRAY, align=PP_ALIGN.CENTER)
 
-    # ── Slide 2: 流程总览 —— 一目了然的时间线 ──
+    # ── Slide 2: 流程总览 ──
     s = prs.slides.add_slide(prs.slide_layouts[6])
     _header(s, "📋 活动流程总览")
     y = Inches(1.3)
@@ -159,63 +193,36 @@ def _build_host_card(prs: Presentation, state: dict) -> str:
                  seg["activity"][:35], size=14, color=C_DARK)
         y += Inches(0.55)
 
-    # ── Slide 3+: 每环节一页（时间 + 内容 + 主持提示 + 主要角色） ──
+    # ── Slide 3+: 每环节完整主持词 ──
     for i, seg in enumerate(segments[:8]):
         s = prs.slides.add_slide(prs.slide_layouts[6])
         _header(s, f"环节 {i+1}：{seg['activity'][:20]}", seg["time"])
 
-        lines = []
-        lines.append(f"⏱ 时间：{seg['time']}")
-        lines.append(f"📋 内容：{seg['activity']}")
-        lines.append("")
+        # 获取该环节对应的主持词
+        script_text = script_segments[i] if i < len(script_segments) else ""
+        if not script_text:
+            script_text = "（主持人可根据现场情况灵活发挥）"
 
-        if seg.get("detail"):
-            lines.append(f"📌 {seg['detail'][:80]}")
+        # 分行显示，保持可读性
+        script_lines_display = script_text.split("\n")
+        # 过长行做截断
+        display_lines = []
+        for l in script_lines_display:
+            if len(l) > 60:
+                # 按句号或逗号折行
+                parts = re.split(r'(?<=[。，；！？])', l)
+                for p in parts:
+                    if p.strip():
+                        display_lines.append(p.strip())
+            else:
+                display_lines.append(l)
 
-        # 主持话术
-        if host_script:
-            script_lines = [l.strip() for l in host_script.split("\n") if l.strip()]
-            matched = [l for l in script_lines
-                       if seg["time"][:5] in l or seg["activity"][:6] in l]
-            if matched:
-                lines.append("")
-                lines.append(f"🎤 主持词：{matched[0][:70]}")
+        # 如果行数太多，仅显示前 15 行 + 省略提示
+        if len(display_lines) > 15:
+            display_lines = display_lines[:15] + ["…（后续内容见完整主持稿）"]
 
-        lines.append("")
-        lines.append(f"💡 提示：注意控制时间，灵活过渡")
-
-        _ml(s, Inches(0.5), Inches(1.4), Inches(9), Inches(5.5),
-            lines, size=15, color=C_DARK, spacing=0.4)
-
-    # ── 主要角色页（只含上台/关键角色，不含负责人） ──
-    # 从 info 提取主要角色信息
-    role_lines = []
-    if info.get("organizer") and info["organizer"] != "待定":
-        role_lines.append(f"🏢 主办单位：{info['organizer']}")
-    if info.get("target_audience") and info["target_audience"] != "待定":
-        role_lines.append(f"👥 面向对象：{info['target_audience']}")
-    role_lines += [
-        "",
-        "🎤 本场主要角色",
-        "   主持人 — 全场串场、氛围调动",
-        "   活动总负责人 — 统筹协调、应急处理",
-        "   技术支持 — 音响/灯光/投影操作",
-    ]
-    s = prs.slides.add_slide(prs.slide_layouts[6])
-    _header(s, "主要角色")
-    _ml(s, Inches(0.5), Inches(1.3), Inches(9), Inches(5.5),
-        role_lines, size=15, color=C_DARK, spacing=0.35)
-
-    # ── 现场提醒页 ──
-    s = prs.slides.add_slide(prs.slide_layouts[6])
-    _header(s, "⏰ 现场提醒")
-    _ml(s, Inches(0.5), Inches(1.3), Inches(9), Inches(5.5), [
-        "🔹 提前 30 分钟到场，检查设备（话筒·投影·音响）",
-        "🔹 确认各环节准备就绪",
-        "🔹 控制每个环节时长，必要时灵活调整",
-        "🔹 突发情况及时与总负责人沟通",
-        "🔹 活动结束后组织合影留念",
-    ], size=15, color=C_DARK, spacing=0.4)
+        _ml(s, Inches(0.5), Inches(1.3), Inches(9), Inches(5.8),
+            display_lines, size=14, color=C_DARK, spacing=0.3)
 
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
     filename = f"主持人手卡_{ts}.pptx"
