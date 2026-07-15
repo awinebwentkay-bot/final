@@ -106,6 +106,8 @@ def _parse_segments(schedule: str) -> list[dict]:
             if "前期准备" not in rest and "活动前" not in time_str:
                 segments.append({"time": time_str, "activity": rest or line, "detail": ""})
         else:
+            if "前期准备" in line or "活动前" in line:
+                continue
             if segments:
                 segments[-1]["detail"] += " " + line
             else:
@@ -142,7 +144,7 @@ def _build_host_card(prs: Presentation, state: dict) -> str:
     host_script = state.get("host_script") or ""
     info = _get_confirmed_info(state)
 
-    title_text = _find_title(plan)
+    title_text = info.get("title") or _find_title(plan)
     segments = _parse_segments(schedule) or [{"time": "", "activity": "（日程待生成）", "detail": ""}]
 
     # 将主持稿按环节分段
@@ -254,7 +256,7 @@ def _build_display_ppt(prs: Presentation, state: dict) -> str:
     schedule = state.get("schedule", "")
     info = _get_confirmed_info(state)
 
-    title_text = _find_title(plan)
+    title_text = info.get("title") or _find_title(plan)
     segments = _parse_segments(schedule) or [{"time": "", "activity": "（日程待生成）", "detail": ""}]
 
     # ── Slide 1: 封面 ──

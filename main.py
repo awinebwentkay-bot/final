@@ -236,10 +236,7 @@ def validate_activity_type(activity_type: str) -> str:
         print(f"  ⚠️ 不太明确：{result}")
         return validate_activity_type(input("  请重新输入：").strip())
 
-    # 明确则给出细化建议（不强制）
-    hint = _refine_hint(activity_type)
-    if hint:
-        print(f"  💡 提示：{hint}")
+    # 明确则直接返回
     return activity_type
 
 
@@ -326,6 +323,10 @@ def collect_input() -> tuple:
             user_intent += f"。\n补充说明：{details}"
 
         # 给用户确认机会
+        hint = _refine_hint(activity_type)
+        if hint:
+            print(f"  💡 提示：{hint}")
+
         print(f"\n  📋 需求确认：")
         print(f"     活动类型：{activity_type}")
         print(f"     参与人数：{participants}人")
