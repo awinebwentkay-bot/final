@@ -300,17 +300,29 @@ def collect_input() -> tuple:
         if venue_type not in ("室内", "室外"):
             venue_type = "室内"
 
-        budget_reimbursable = input("  可报销经费（元，没有可填 0）：").strip()
+        budget_reimbursable = input("  可报销经费（元，Enter 默认为 0）：").strip()
+        if budget_reimbursable == "":
+            budget_reimbursable = "0"
         while not budget_reimbursable.isdigit() or int(budget_reimbursable) < 0:
             budget_reimbursable = input("  请输入有效的可报销金额（非负整数）：").strip()
+            if budget_reimbursable == "":
+                budget_reimbursable = "0"
 
-        budget_non_reimbursable = input("  不可报销经费/班费（元，需参与者平摊，没有可填 0）：").strip()
+        budget_non_reimbursable = input("  不可报销经费/班费（元，需参与者平摊，Enter 默认为 0）：").strip()
+        if budget_non_reimbursable == "":
+            budget_non_reimbursable = "0"
         while not budget_non_reimbursable.isdigit() or int(budget_non_reimbursable) < 0:
             budget_non_reimbursable = input("  请输入有效的班费金额（非负整数）：").strip()
+            if budget_non_reimbursable == "":
+                budget_non_reimbursable = "0"
 
         total_budget = int(budget_reimbursable) + int(budget_non_reimbursable)
 
         # ── 补充说明 ────────────────────────────────────────
+        hint = _refine_hint(activity_type)
+        if hint:
+            print(f"  💡 提示：{hint}")
+
         print("\n  📝 补充说明（可选，直接 Enter 跳过）：")
         print("     可以描述活动主题、特殊要求、形式细节、目标人群等")
         print("     例如：主题是'AI赋能未来'，希望有互动环节，面向计算机系学生")
@@ -326,10 +338,6 @@ def collect_input() -> tuple:
             user_intent += f"。\n补充说明：{details}"
 
         # 给用户确认机会
-        hint = _refine_hint(activity_type)
-        if hint:
-            print(f"  💡 提示：{hint}")
-
         print(f"\n  📋 需求确认：")
         print(f"     活动类型：{activity_type}")
         print(f"     参与人数：{participants}人")
