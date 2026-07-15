@@ -66,7 +66,18 @@ def execute_agent(state: ActivityState) -> ActivityState:
         print("[执行] 跳过主持稿和 PPT 生成", flush=True)
 
     print(f"[执行] 正在生成通知文案...", flush=True)
-    notice = llm.invoke(EXECUTE_NOTICE.format(plan=plan, regulations=regulations)).content
+    # 获取海报已确认信息，确保时间地点一致
+    import json
+    confirmed = state.get("poster_info_confirmed", "{}")
+    try:
+        p_info = json.loads(confirmed)
+    except (json.JSONDecodeError, TypeError):
+        p_info = {"date": "待定", "time": "待定", "venue": "待定"}
+    p_date = p_info.get("date", "待定")
+    p_time = p_info.get("time", "待定")
+    p_venue = p_info.get("venue", "待定")
+    notice = llm.invoke(EXECUTE_NOTICE.format(plan=plan, regulations=regulations,
+                       p_date=p_date, p_time=p_time, p_venue=p_venue)).content
     state["notice_text"] = notice
     state["log"].append("【执行】日程、通知生成完成")
 

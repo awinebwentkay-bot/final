@@ -69,7 +69,7 @@ FIELD_LABELS = {
 }
 
 OUTPUT_FIELDS = {
-    "full":     ["activity_plan", "total_budget", "schedule", "host_script",
+    "full":     ["activity_plan", "total_budget", "schedule", "host_script", "notice_text",
                  "poster_copy", "poster_image", "risk_report", "survey_template", "ppt_path", "html_path"],
     "plan":     ["activity_plan"],
     "budget":   ["activity_plan", "total_budget"],
@@ -210,6 +210,9 @@ def print_result(state: dict, intent: str):
         elif key == "host_script":
             script_path = export_script(value)
             print(f"📋 主持稿已生成：{script_path}")
+        elif key == "notice_text":
+            notice_path = export_notice(value)
+            print(f"📋 通知文案已生成：{notice_path}")
         else:
             print(f"\n===== {label} =====")
             print(value)
@@ -366,7 +369,7 @@ def export_to_file(state: dict, intent: str) -> str:
         value = state.get(key)
         if value is None:
             continue
-        if key in ("total_budget", "eval_comment", "risk_report", "survey_template", "host_script"):
+        if key in ("total_budget", "eval_comment", "risk_report", "survey_template", "host_script", "notice_text"):
             if key == "total_budget":
                 lines.append(f"## {label}\n\n{value}\n")
             break  # 输出到总预算即止；评价和问卷已单独导出
@@ -462,6 +465,24 @@ def export_script(script_text: str) -> str:
         f"# 主持串场词\n\n"
         f"**生成时间：** {datetime.now().strftime('%Y-%m-%d %H:%M')}\n\n"
         f"{script_text}\n\n"
+        f"---\n*由校园活动策划助手自动生成*"
+    )
+    path.write_text(content, encoding="utf-8")
+    return str(path)
+
+
+NOTICE_DIR = Path("通知输出")
+
+
+def export_notice(notice_text: str) -> str:
+    """将通知文案导出为独立的 Markdown 文档。"""
+    NOTICE_DIR.mkdir(exist_ok=True)
+    now = datetime.now().strftime("%Y%m%d_%H%M%S")
+    path = NOTICE_DIR / f"通知文案_{now}.md"
+    content = (
+        f"# 活动通知\n\n"
+        f"**生成时间：** {datetime.now().strftime('%Y-%m-%d %H:%M')}\n\n"
+        f"{notice_text}\n\n"
         f"---\n*由校园活动策划助手自动生成*"
     )
     path.write_text(content, encoding="utf-8")
