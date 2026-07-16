@@ -126,7 +126,8 @@ def parse_intent(user_input: str) -> str:
 def run_graph(user_input: str, input_budget: int = 0,
               input_budget_reimbursable: int = 0, input_budget_non_reimbursable: int = 0,
               input_participants: int = 0, venue_type: str = "室内", intent: str = None,
-              poster_info_confirmed: str = "", skip_interactive: bool = False):
+              poster_info_confirmed: str = "", skip_interactive: bool = False,
+              need_host: bool = True, need_ppt: bool = True):
     if intent is None:
         print("[路由] 正在解析用户意图...", flush=True)
         intent = parse_intent(user_input)
@@ -149,8 +150,8 @@ def run_graph(user_input: str, input_budget: int = 0,
         schedule=None,
         host_script=None,
         notice_text=None,
-        need_host=True,
-        need_ppt=True,
+        need_host=need_host,
+        need_ppt=need_ppt,
         need_poster=True,
         skip_interactive=skip_interactive,
         poster_copy=None,
@@ -360,6 +361,13 @@ def collect_input() -> tuple:
 # ── 导出文档 ──────────────────────────────────────────────────
 EXPORT_DIR = Path("策划案输出")
 
+# 若设置，所有输出将集中到该目录（由前端动态指定）
+SESSION_DIR = None
+
+
+def _out_dir(fallback: Path) -> Path:
+    return SESSION_DIR if SESSION_DIR is not None else fallback
+
 
 def ensure_export_dir():
     EXPORT_DIR.mkdir(exist_ok=True)
@@ -367,9 +375,10 @@ def ensure_export_dir():
 
 def export_to_file(state: dict, intent: str) -> str:
     """将输出结果导出为 Markdown 文档。"""
-    ensure_export_dir()
+    out = _out_dir(EXPORT_DIR)
+    out.mkdir(parents=True, exist_ok=True)
     now = datetime.now().strftime("%Y%m%d_%H%M%S")
-    path = EXPORT_DIR / f"活动策划案_{now}.md"
+    path = out / f"活动策划案_{now}.md"
 
     lines = [f"# 校园活动策划方案", f"**生成时间：** {datetime.now().strftime('%Y-%m-%d %H:%M')}\n"]
     fields = OUTPUT_FIELDS.get(intent, ["activity_plan"])
@@ -396,9 +405,10 @@ SCHEDULE_DIR = Path("日程输出")
 
 def export_schedule(schedule_text: str) -> str:
     """将活动日程导出为独立的 Markdown 文档。"""
-    SCHEDULE_DIR.mkdir(exist_ok=True)
+    out = _out_dir(SCHEDULE_DIR)
+    out.mkdir(parents=True, exist_ok=True)
     now = datetime.now().strftime("%Y%m%d_%H%M%S")
-    path = SCHEDULE_DIR / f"活动日程_{now}.md"
+    path = out / f"活动日程_{now}.md"
     content = (
         f"# 活动日程\n\n"
         f"**生成时间：** {datetime.now().strftime('%Y-%m-%d %H:%M')}\n\n"
@@ -414,9 +424,10 @@ EVAL_DIR = Path("评价输出")
 
 def export_eval(eval_text: str) -> str:
     """将师生评价反馈导出为独立的 Markdown 文档。"""
-    EVAL_DIR.mkdir(exist_ok=True)
+    out = _out_dir(EVAL_DIR)
+    out.mkdir(parents=True, exist_ok=True)
     now = datetime.now().strftime("%Y%m%d_%H%M%S")
-    path = EVAL_DIR / f"师生评价反馈_{now}.md"
+    path = out / f"师生评价反馈_{now}.md"
     content = (
         f"# 师生评价反馈\n\n"
         f"**生成时间：** {datetime.now().strftime('%Y-%m-%d %H:%M')}\n\n"
@@ -432,9 +443,10 @@ SURVEY_DIR = Path("问卷输出")
 
 def export_survey(survey_text: str) -> str:
     """将满意度问卷导出为独立的 Markdown 文档。"""
-    SURVEY_DIR.mkdir(exist_ok=True)
+    out = _out_dir(SURVEY_DIR)
+    out.mkdir(parents=True, exist_ok=True)
     now = datetime.now().strftime("%Y%m%d_%H%M%S")
-    path = SURVEY_DIR / f"满意度问卷_{now}.md"
+    path = out / f"满意度问卷_{now}.md"
     content = (
         f"# 满意度问卷\n\n"
         f"**生成时间：** {datetime.now().strftime('%Y-%m-%d %H:%M')}\n\n"
@@ -450,9 +462,10 @@ RISK_DIR = Path("风险评估输出")
 
 def export_risk(risk_text: str) -> str:
     """将风险评估报告导出为独立的 Markdown 文档。"""
-    RISK_DIR.mkdir(exist_ok=True)
+    out = _out_dir(RISK_DIR)
+    out.mkdir(parents=True, exist_ok=True)
     now = datetime.now().strftime("%Y%m%d_%H%M%S")
-    path = RISK_DIR / f"风险评估报告_{now}.md"
+    path = out / f"风险评估报告_{now}.md"
     content = (
         f"# 风险评估报告\n\n"
         f"**生成时间：** {datetime.now().strftime('%Y-%m-%d %H:%M')}\n\n"
@@ -468,9 +481,10 @@ SCRIPT_DIR = Path("主持稿输出")
 
 def export_script(script_text: str) -> str:
     """将主持串场词导出为独立的 Markdown 文档。"""
-    SCRIPT_DIR.mkdir(exist_ok=True)
+    out = _out_dir(SCRIPT_DIR)
+    out.mkdir(parents=True, exist_ok=True)
     now = datetime.now().strftime("%Y%m%d_%H%M%S")
-    path = SCRIPT_DIR / f"主持稿_{now}.md"
+    path = out / f"主持稿_{now}.md"
     content = (
         f"# 主持串场词\n\n"
         f"**生成时间：** {datetime.now().strftime('%Y-%m-%d %H:%M')}\n\n"
@@ -486,9 +500,10 @@ NOTICE_DIR = Path("通知输出")
 
 def export_notice(notice_text: str) -> str:
     """将通知文案导出为独立的 Markdown 文档。"""
-    NOTICE_DIR.mkdir(exist_ok=True)
+    out = _out_dir(NOTICE_DIR)
+    out.mkdir(parents=True, exist_ok=True)
     now = datetime.now().strftime("%Y%m%d_%H%M%S")
-    path = NOTICE_DIR / f"通知文案_{now}.md"
+    path = out / f"通知文案_{now}.md"
     content = (
         f"# 活动通知\n\n"
         f"**生成时间：** {datetime.now().strftime('%Y-%m-%d %H:%M')}\n\n"
@@ -501,6 +516,13 @@ def export_notice(notice_text: str) -> str:
 
 if __name__ == "__main__":
     user_input, total_budget, budget_reimbursable, budget_non_reimbursable, input_participants, venue_type = collect_input()
+
+    # CLI 模式也使用集中输出目录
+    activity_name = user_input.split("举办一场", 1)[1].split("，", 1)[0] if "举办一场" in user_input else "活动"
+    now = datetime.now().strftime("%Y%m%d_%H%M%S")
+    SESSION_DIR = Path("output") / f"{activity_name}_{now}"
+    SESSION_DIR.mkdir(parents=True, exist_ok=True)
+    print(f"[输出] 所有文件将保存至: {SESSION_DIR}/", flush=True)
 
     print()
     result, intent = run_graph(

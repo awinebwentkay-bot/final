@@ -12,6 +12,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from config import llm
 from prompts import AMBIGUITY_CHECK, ROUTER, POSTER_EXTRACT_INFO
+import main
 from main import (
     run_graph, print_result, export_to_file, export_schedule,
     export_eval, export_survey, export_risk, export_script, export_notice,
@@ -53,6 +54,8 @@ if "step" not in st.session_state:
     st.session_state.intent = None
     st.session_state.running = False
     st.session_state.done = False
+    st.session_state.need_host = True
+    st.session_state.need_ppt = True
 
 # ── 辅助函数 ──
 def _validate_activity_type(atype):
@@ -170,11 +173,38 @@ elif st.session_state.step == "confirm":
             st.rerun()
     with col2:
         if st.button("✅ 确认并开始生成", type="primary", use_container_width=True):
+            st.session_state.step = "options"
+            st.rerun()
+
+# ══════════════════════════════════════════════════════════════
+# 步骤 6.5: 生成选项（主持稿 / PPT）
+# ══════════════════════════════════════════════════════════════
+elif st.session_state.step == "options":
+    st.markdown(f'<p class="step-header">⚙️ 选择要生成的内容</p>', unsafe_allow_html=True)
+
+    st.markdown("请选择需要自动生成的项目：")
+
+    need_host = st.checkbox("🎤 主持稿 / 主持串场词", value=st.session_state.need_host,
+                            help="勾选后将为活动生成完整的主持人手卡")
+    need_ppt = st.checkbox("📊 PPT 演示文稿", value=st.session_state.need_ppt,
+                           help="勾选后将生成 PPT 演示文稿（含主持人手卡和活动现场展示）")
+
+    st.info("📌 活动策划案、预算、海报、通知、风险评估等为必选项，将自动生成。")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("← 返回修改", use_container_width=True):
+            st.session_state.step = "confirm"
+            st.rerun()
+    with col2:
+        if st.button("✅ 确认并继续", type="primary", use_container_width=True):
+            st.session_state.need_host = need_host
+            st.session_state.need_ppt = need_ppt
             st.session_state.step = "poster_confirm"
             st.rerun()
 
 # ══════════════════════════════════════════════════════════════
-# 步骤 6.5: 海报信息确认
+# 步骤 6.6: 海报信息确认
 # ══════════════════════════════════════════════════════════════
 elif st.session_state.step == "poster_confirm":
     st.markdown(f'<p class="step-header">🖼️ 确认海报信息</p>', unsafe_allow_html=True)
@@ -193,6 +223,8 @@ elif st.session_state.step == "poster_confirm":
                 venue_type=st.session_state.venue_type,
                 poster_info_confirmed="__skip__",
                 skip_interactive=True,
+                need_host=st.session_state.need_host,
+                need_ppt=st.session_state.need_ppt,
             )
             plan = result.get("activity_plan", "")
             st.session_state.plan = plan
@@ -252,6 +284,13 @@ elif st.session_state.step == "running":
     try:
         total_budget = st.session_state.budget_reimbursable + st.session_state.budget_non_reimbursable
 
+        # 按活动主题+时间创建本次会话的输出目录
+        activity_name = st.session_state.activity_type
+        now_str = datetime.now().strftime("%Y%m%d_%H%M%S")
+        session_dir = Path("output") / f"{activity_name}_{now_str}"
+        session_dir.mkdir(parents=True, exist_ok=True)
+        main.SESSION_DIR = session_dir
+
         progress_bar.progress(10, text="正在生成活动方案...")
         result, intent = run_graph(
             st.session_state.user_intent,
@@ -262,6 +301,8 @@ elif st.session_state.step == "running":
             venue_type=st.session_state.venue_type,
             poster_info_confirmed=st.session_state.get("poster_info_confirmed", ""),
             skip_interactive=True,
+            need_host=st.session_state.need_host,
+            need_ppt=st.session_state.need_ppt,
         )
 
         progress_bar.progress(80, text="正在导出文档...")
