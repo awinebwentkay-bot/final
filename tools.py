@@ -65,11 +65,13 @@ def generate_poster_image(prompt: str) -> str:
 def _download_image(url: str) -> str:
     """下载图片到本地海报目录，返回文件路径。"""
     import requests
-
-    POSTER_DIR.mkdir(exist_ok=True)
+    # 若前端设置了 SESSION_DIR，优先使用集中输出目录
+    from main import SESSION_DIR
+    out = SESSION_DIR if SESSION_DIR is not None else POSTER_DIR
+    out.mkdir(parents=True, exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     filename = f"海报_{timestamp}.png"
-    path = POSTER_DIR / filename
+    path = out / filename
 
     resp = requests.get(url, timeout=30)
     resp.raise_for_status()

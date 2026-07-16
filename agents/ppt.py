@@ -243,7 +243,9 @@ def _build_host_card(prs: Presentation, state: dict) -> str:
 
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
     filename = f"主持人手卡_{ts}.pptx"
-    path = PPT_DIR / filename
+    from main import SESSION_DIR
+    out = SESSION_DIR if SESSION_DIR is not None else PPT_DIR
+    path = out / filename
     prs.save(str(path))
     return str(path)
 
@@ -342,7 +344,9 @@ def _build_display_ppt(prs: Presentation, state: dict) -> str:
 
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
     filename = f"活动现场展示_{ts}.pptx"
-    path = PPT_DIR / filename
+    from main import SESSION_DIR
+    out = SESSION_DIR if SESSION_DIR is not None else PPT_DIR
+    path = out / filename
     prs.save(str(path))
     return str(path)
 
@@ -352,7 +356,9 @@ def _build_display_ppt(prs: Presentation, state: dict) -> str:
 # ══════════════════════════════════════════════════════════════
 def ppt_agent(state: ActivityState) -> ActivityState:
     """生成两份 PPT：主持人手卡 + 活动现场展示PPT。"""
-    PPT_DIR.mkdir(exist_ok=True)
+    from main import SESSION_DIR
+    out = SESSION_DIR if SESSION_DIR is not None else PPT_DIR
+    out.mkdir(parents=True, exist_ok=True)
 
     # ── PPT-A：主持人手卡 ──
     print(f"[PPT] 正在生成主持人手卡...", flush=True)
