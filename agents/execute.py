@@ -74,7 +74,6 @@ def execute_agent(state: ActivityState) -> ActivityState:
 
     print(f"[执行] 正在生成通知文案...", flush=True)
     # 获取海报已确认信息，确保时间地点一致
-    import json
     confirmed = state.get("poster_info_confirmed", "{}")
     try:
         p_info = json.loads(confirmed)

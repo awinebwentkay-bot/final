@@ -5,17 +5,28 @@ import sys
 import os
 import json
 from pathlib import Path
+<<<<<<< Updated upstream
 from datetime import datetime
+=======
+>>>>>>> Stashed changes
 
 # 将项目根目录加入路径，复用现有模块
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from config import llm
+<<<<<<< Updated upstream
 from prompts import AMBIGUITY_CHECK, ROUTER, POSTER_EXTRACT_INFO
 from main import (
     run_graph, print_result, export_to_file, export_schedule,
     export_eval, export_survey, export_risk, export_script, export_notice,
     OUTPUT_FIELDS, EXPORT_DIR,
+=======
+from prompts import AMBIGUITY_CHECK, POSTER_EXTRACT_INFO
+from main import (
+    run_graph, export_to_file, export_schedule,
+    export_survey, export_risk, export_script, export_notice, export_eval,
+    OUTPUT_FIELDS, _refine_hint,
+>>>>>>> Stashed changes
 )
 
 # ── 页面配置 ──
@@ -64,6 +75,7 @@ def _validate_activity_type(atype):
     return True, ""
 
 
+<<<<<<< Updated upstream
 def _hint(atype):
     hints = {
         "班会": "可补充具体主题，如：防诈骗主题班会 / 心理健康班会 / 学风建设班会",
@@ -79,6 +91,8 @@ def _hint(atype):
     return ""
 
 
+=======
+>>>>>>> Stashed changes
 # ── 标题 ──
 st.markdown('<p class="main-title">🎯 校园活动策划助手</p>', unsafe_allow_html=True)
 st.markdown('<p class="sub-title">策划 · 预算 · 执行 · 宣传 · 风险 · 反馈</p>', unsafe_allow_html=True)
@@ -103,7 +117,11 @@ if st.session_state.step in ("input", "activity_type", "participants", "venue_ty
         with col2:
             budget_non = st.number_input("不可报销经费/班费（元）", min_value=0, step=50, value=0)
 
+<<<<<<< Updated upstream
         hint = _hint(atype)
+=======
+        hint = _refine_hint(atype)
+>>>>>>> Stashed changes
         if hint:
             st.info(f"💡 {hint}")
 
@@ -301,6 +319,12 @@ elif st.session_state.step == "running":
             elif key == "risk_report":
                 p = export_risk(value)
                 files.append(("⚠️ 风险评估报告", p, "markdown"))
+<<<<<<< Updated upstream
+=======
+            elif key == "eval_comment":
+                p = export_eval(value)
+                files.append(("📝 师生评价反馈", p, "markdown"))
+>>>>>>> Stashed changes
             elif key == "survey_template":
                 p = export_survey(value)
                 files.append(("📝 满意度问卷", p, "markdown"))

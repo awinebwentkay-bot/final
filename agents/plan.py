@@ -3,6 +3,7 @@
 from models import ActivityState
 from config import llm
 from prompts import PLAN_MAIN, REGULATION_APPROVAL, REGULATION_FINANCE
+from tools import get_venue_info
 
 
 def plan_agent(state: ActivityState) -> ActivityState:
@@ -13,6 +14,10 @@ def plan_agent(state: ActivityState) -> ActivityState:
     budget_reimb = state["input_budget_reimbursable"]
     budget_non_reimb = state["input_budget_non_reimbursable"]
     budget_total = state["input_budget"]
+
+    # 场地建议
+    people = state["input_participants"]
+    venue_hint = f"\n\n【参考场地】\n{get_venue_info(people)}\n"
 
     if state["budget_feedback"] == "lack":
         previous_estimate = state.get("total_budget", "未知")
@@ -51,7 +56,7 @@ def plan_agent(state: ActivityState) -> ActivityState:
     prompt = PLAN_MAIN.format(
         history_cases=cases,
         user_intent=user_intent,
-        budget_hint=budget_hint + reference_hint,
+        budget_hint=budget_hint + reference_hint + venue_hint,
         regulations=regulations,
     )
     print(f"[策划] 正在调用大模型生成策划案...", flush=True)

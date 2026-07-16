@@ -1,15 +1,11 @@
 """通用工具函数"""
 
-import os
 from datetime import datetime
 from pathlib import Path
 
 from db import search_history_case
 from venues import recommend_venues
-
-
-def calc_budget(base_cost: int, people: int):
-    return base_cost + people * 15
+from config import llm
 
 
 def get_venue_info(people: int) -> str:
@@ -34,26 +30,18 @@ def search_case_tool():
     return search_history_case()
 
 
-def export_doc(content: str, filename: str):
-    with open(f"./{filename}.txt", "w", encoding="utf-8") as f:
-        f.write(content)
-    return f"{filename}文档导出完成"
-
-
 # ── 海报渲染 ──────────────────────────────────────────────
 POSTER_DIR = Path("海报输出")
-
-# 从 config 中复用 API key
-DASHSCOPE_API_KEY = "sk-sp-D.LYDLY.6EOn.MEQCIHpNRoRQHs1/WP/nB55d/hoyxo18dW5WwGMxVNOkl2ZFAiA9T+mOdVbKCWWG+MR0R0nHLdfBgwIHRRcpUEK6QDbaTQ=="
 
 
 def generate_poster_image(prompt: str) -> str:
     """通过 token-plan 兼容端点调用 qwen-image-2.0 生成海报图片，返回本地文件路径。"""
     import requests
 
+    api_key = llm.openai_api_key.get_secret_value()
     url = "https://token-plan.cn-beijing.maas.aliyuncs.com/compatible-mode/v1/chat/completions"
     headers = {
-        "Authorization": f"Bearer {DASHSCOPE_API_KEY}",
+        "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
     }
     body = {

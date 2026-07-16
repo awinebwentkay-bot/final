@@ -70,7 +70,7 @@ FIELD_LABELS = {
 
 OUTPUT_FIELDS = {
     "full":     ["activity_plan", "total_budget", "schedule", "host_script", "notice_text",
-                 "poster_copy", "poster_image", "risk_report", "survey_template", "ppt_path", "html_path"],
+                 "poster_copy", "poster_image", "risk_report", "eval_comment", "survey_template", "ppt_path", "html_path"],
     "plan":     ["activity_plan"],
     "budget":   ["activity_plan", "total_budget"],
     "execute":  ["activity_plan", "total_budget", "schedule", "host_script", "notice_text"],
