@@ -26,7 +26,7 @@ C_GOLD = RGBColor(0xF5, 0x9E, 0x0B)
 C_TEAL = RGBColor(0x14, 0xB8, 0xA6)
 C_PURPLE = RGBColor(0x8B, 0x5C, 0xF6)
 
-PPT_DIR = Path("PPT演示文稿")
+PPT_DIR = Path("output") / "PPT演示文稿"
 
 
 def _bg(slide, color):

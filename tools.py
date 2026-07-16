@@ -31,7 +31,7 @@ def search_case_tool():
 
 
 # ── 海报渲染 ──────────────────────────────────────────────
-POSTER_DIR = Path("海报输出")
+POSTER_DIR = Path("output") / "海报输出"
 
 
 def generate_poster_image(prompt: str) -> str:

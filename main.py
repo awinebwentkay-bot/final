@@ -359,7 +359,7 @@ def collect_input() -> tuple:
 
 
 # ── 导出文档 ──────────────────────────────────────────────────
-EXPORT_DIR = Path("策划案输出")
+EXPORT_DIR = Path("output") / "策划案输出"
 
 # 若设置，所有输出将集中到该目录（由前端动态指定）
 SESSION_DIR = None
@@ -400,7 +400,7 @@ def export_to_file(state: dict, intent: str) -> str:
     return str(path)
 
 
-SCHEDULE_DIR = Path("日程输出")
+SCHEDULE_DIR = Path("output") / "日程输出"
 
 
 def export_schedule(schedule_text: str) -> str:
@@ -419,7 +419,7 @@ def export_schedule(schedule_text: str) -> str:
     return str(path)
 
 
-EVAL_DIR = Path("评价输出")
+EVAL_DIR = Path("output") / "评价输出"
 
 
 def export_eval(eval_text: str) -> str:
@@ -438,7 +438,7 @@ def export_eval(eval_text: str) -> str:
     return str(path)
 
 
-SURVEY_DIR = Path("问卷输出")
+SURVEY_DIR = Path("output") / "问卷输出"
 
 
 def export_survey(survey_text: str) -> str:
@@ -457,7 +457,7 @@ def export_survey(survey_text: str) -> str:
     return str(path)
 
 
-RISK_DIR = Path("风险评估输出")
+RISK_DIR = Path("output") / "风险评估输出"
 
 
 def export_risk(risk_text: str) -> str:
@@ -476,7 +476,7 @@ def export_risk(risk_text: str) -> str:
     return str(path)
 
 
-SCRIPT_DIR = Path("主持稿输出")
+SCRIPT_DIR = Path("output") / "主持稿输出"
 
 
 def export_script(script_text: str) -> str:
@@ -495,7 +495,7 @@ def export_script(script_text: str) -> str:
     return str(path)
 
 
-NOTICE_DIR = Path("通知输出")
+NOTICE_DIR = Path("output") / "通知输出"
 
 
 def export_notice(notice_text: str) -> str:

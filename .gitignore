@@ -16,6 +16,9 @@ venv/
 .vscode/
 .idea/
 
+# Output
+output/
+
 # OS
 .DS_Store
 Thumbs.db

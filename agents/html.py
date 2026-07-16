@@ -9,7 +9,7 @@ from pathlib import Path
 from models import ActivityState
 from config import llm
 
-HTML_DIR = Path("公众号推文")
+HTML_DIR = Path("output") / "公众号推文"
 
 REVIEW_PROMPT = """
 你是一位校园公众号小编。请根据以下活动策划案，写一篇**活动回顾推文**。
@@ -238,14 +238,16 @@ def _build_html(state: dict) -> str:
 
 def html_agent(state: ActivityState) -> ActivityState:
     """生成微信公众号风格的 HTML 活动总结推文。"""
-    HTML_DIR.mkdir(exist_ok=True)
+    from main import SESSION_DIR
+    out = SESSION_DIR if SESSION_DIR is not None else HTML_DIR
+    out.mkdir(parents=True, exist_ok=True)
     print(f"[HTML] 正在生成公众号推文...", flush=True)
 
     html = _build_html(state)
 
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
     filename = f"活动回顾_{ts}.html"
-    path = HTML_DIR / filename
+    path = out / filename
     path.write_text(html, encoding="utf-8")
 
     state["html_path"] = str(path)

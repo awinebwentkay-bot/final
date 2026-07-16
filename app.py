@@ -209,10 +209,9 @@ elif st.session_state.step == "options":
 elif st.session_state.step == "poster_confirm":
     st.markdown(f'<p class="step-header">🖼️ 确认海报信息</p>', unsafe_allow_html=True)
 
-    # 先跑一轮 LLM 提取策划案信息
+    # 先跑一轮 LLM 提取策划案信息（只跑策划流程，不跑其他agent）
     if "poster_info" not in st.session_state:
         with st.spinner("正在从策划案中提取信息..."):
-            # 先运行到 plan_agent 获取策划案（传 dummy 值跳过 confirm_agent）
             total_budget = st.session_state.budget_reimbursable + st.session_state.budget_non_reimbursable
             result, intent = run_graph(
                 st.session_state.user_intent,
@@ -221,10 +220,9 @@ elif st.session_state.step == "poster_confirm":
                 input_budget_non_reimbursable=st.session_state.budget_non_reimbursable,
                 input_participants=st.session_state.participants,
                 venue_type=st.session_state.venue_type,
+                intent="plan",  # 只跑策划流程，不跑其他 agent
                 poster_info_confirmed="__skip__",
                 skip_interactive=True,
-                need_host=st.session_state.need_host,
-                need_ppt=st.session_state.need_ppt,
             )
             plan = result.get("activity_plan", "")
             st.session_state.plan = plan
@@ -326,7 +324,7 @@ elif st.session_state.step == "running":
                 "html_path": "公众号推文",
             }.get(key, key)
             value = result.get(key)
-            if value is None:
+            if not value:
                 continue
             if key == "activity_plan":
                 files.append(("📄 活动策划案", plan_path, "markdown"))
@@ -398,15 +396,17 @@ elif st.session_state.step == "results":
         st.markdown("---")
         st.markdown("#### 📂 生成的文件")
         for label, path, ftype in st.session_state.generated_files:
-            if ftype == "markdown" and Path(path).exists():
+            if not path or not Path(path).exists():
+                continue
+            if ftype == "markdown":
                 with st.expander(label):
                     text = Path(path).read_text(encoding="utf-8")
                     st.markdown(text)
                     with open(path, "rb") as f:
                         st.download_button(f"📥 下载", f, file_name=Path(path).name)
-            elif ftype == "image" and Path(path).exists():
+            elif ftype == "image":
                 st.image(path, caption=label)
-            elif ftype in ("pptx", "html") and Path(path).exists():
+            elif ftype in ("pptx", "html"):
                 st.markdown(f"- {label}：[{path}]({path})")
                 with open(path, "rb") as f:
                     st.download_button(f"📥 下载 {label}", f, file_name=Path(path).name)
