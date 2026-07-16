@@ -22,6 +22,7 @@ class ActivityState(TypedDict):
     need_host: bool
     need_ppt: bool
     need_poster: bool
+    skip_interactive: bool
     poster_copy: Optional[str]
     poster_image: Optional[str]
     tweet_content: Optional[str]

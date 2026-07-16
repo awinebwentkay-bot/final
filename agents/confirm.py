@@ -9,6 +9,11 @@ from prompts import POSTER_EXTRACT_INFO
 
 def confirm_agent(state: ActivityState) -> ActivityState:
     """从策划案提取关键信息 → 展示给用户 → 确认/修改 → 存入 state。"""
+    # 如果已有确认信息则跳过（web 界面预先设置）
+    if state.get("poster_info_confirmed"):
+        state["log"].append("【确认】海报信息已预先确认，跳过交互")
+        return state
+
     plan = state.get("activity_plan", "")
 
     # LLM 提取信息

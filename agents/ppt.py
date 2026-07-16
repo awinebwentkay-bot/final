@@ -370,7 +370,7 @@ def ppt_agent(state: ActivityState) -> ActivityState:
     path_b = _build_display_ppt(prs_b, state)
 
     # 合并路径信息
-    state["ppt_path"] = f"{path_a}\n    🖥️  {path_b}"
+    state["ppt_path"] = f"{path_a}\n{path_b}"
     state["log"].append(f"【PPT】主持人手卡 + 活动现场展示PPT 已生成")
     print(f"[PPT] 活动现场展示PPT已生成：{path_b}", flush=True)
 

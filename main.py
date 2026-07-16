@@ -125,7 +125,8 @@ def parse_intent(user_input: str) -> str:
 # ── 运行入口 ──────────────────────────────────────────────────
 def run_graph(user_input: str, input_budget: int = 0,
               input_budget_reimbursable: int = 0, input_budget_non_reimbursable: int = 0,
-              input_participants: int = 0, venue_type: str = "室内", intent: str = None):
+              input_participants: int = 0, venue_type: str = "室内", intent: str = None,
+              poster_info_confirmed: str = "", skip_interactive: bool = False):
     if intent is None:
         print("[路由] 正在解析用户意图...", flush=True)
         intent = parse_intent(user_input)
@@ -138,6 +139,7 @@ def run_graph(user_input: str, input_budget: int = 0,
         input_budget_non_reimbursable=input_budget_non_reimbursable,
         input_participants=input_participants,
         venue_type=venue_type,
+        poster_info_confirmed=poster_info_confirmed or None,
         short_memory={},
         history_cases=[],
         activity_plan=None,
@@ -150,12 +152,12 @@ def run_graph(user_input: str, input_budget: int = 0,
         need_host=True,
         need_ppt=True,
         need_poster=True,
+        skip_interactive=skip_interactive,
         poster_copy=None,
         poster_image=None,
         tweet_content=None,
         risk_report=None,
         reference_cases=None,
-        poster_info_confirmed=None,
         eval_comment=None,
         survey_template=None,
         task_execution_plan=None,

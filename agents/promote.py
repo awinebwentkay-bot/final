@@ -21,13 +21,16 @@ def promote_agent(state: ActivityState) -> ActivityState:
     state["log"].append("【宣传】推文生成完成")
 
     # ── 是否需要海报 ────────────────────────────────────────
-    need_poster = input("\n  🖼️ 是否需要生成海报？（y/n，默认 y）：").strip().lower()
-    if need_poster in ("n", "no", "否"):
-        state["need_poster"] = False
-        state["log"].append("【宣传】用户选择不生成海报，已跳过")
-        print("[宣传] 跳过海报生成", flush=True)
-        return state
-    state["need_poster"] = True
+    if state.get("skip_interactive"):
+        state["need_poster"] = True
+    else:
+        need_poster = input("\n  🖼️ 是否需要生成海报？（y/n，默认 y）：").strip().lower()
+        if need_poster in ("n", "no", "否"):
+            state["need_poster"] = False
+            state["log"].append("【宣传】用户选择不生成海报，已跳过")
+            print("[宣传] 跳过海报生成", flush=True)
+            return state
+        state["need_poster"] = True
 
     # ── 读取已确认信息 ──────────────────────────────────────
     confirmed = state.get("poster_info_confirmed", "{}")
@@ -46,15 +49,18 @@ def promote_agent(state: ActivityState) -> ActivityState:
         }
 
     # ── 征求风格意见 ────────────────────────────────────────
-    print(f"\n  🎨 请选择海报风格：")
-    print(f"     1. 清新简洁 — 白色/浅灰背景，彩色标题，卡片式排列")
-    print(f"     2. 热血活力 — 渐变背景，粗体大字，动感元素")
-    print(f"     3. 典雅文艺 — 暖棕底色，柔和光影，文艺元素")
-    print(f"     4. 科技未来 — 深色背景，霓虹渐变，科技感")
-    print(f"     5. 国风古典 — 水墨/宣纸底，书法标题，传统纹样")
-    style_choice = input("  请输入编号（1-5，默认 1）：").strip()
-    style_map = {"1": "清新简洁", "2": "热血活力", "3": "典雅文艺", "4": "科技未来", "5": "国风古典"}
-    chosen_style = style_map.get(style_choice, "清新简洁")
+    if state.get("skip_interactive"):
+        chosen_style = "清新简洁"
+    else:
+        print(f"\n  🎨 请选择海报风格：")
+        print(f"     1. 清新简洁 — 白色/浅灰背景，彩色标题，卡片式排列")
+        print(f"     2. 热血活力 — 渐变背景，粗体大字，动感元素")
+        print(f"     3. 典雅文艺 — 暖棕底色，柔和光影，文艺元素")
+        print(f"     4. 科技未来 — 深色背景，霓虹渐变，科技感")
+        print(f"     5. 国风古典 — 水墨/宣纸底，书法标题，传统纹样")
+        style_choice = input("  请输入编号（1-5，默认 1）：").strip()
+        style_map = {"1": "清新简洁", "2": "热血活力", "3": "典雅文艺", "4": "科技未来", "5": "国风古典"}
+        chosen_style = style_map.get(style_choice, "清新简洁")
 
     # ── 生成海报图片 ────────────────────────────────────────
     print(f"  [宣传] AI 正在生成海报描述（风格：{chosen_style}）...", flush=True)
